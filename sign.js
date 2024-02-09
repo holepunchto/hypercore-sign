@@ -43,7 +43,7 @@ async function main () {
 
   const signedMsg = Buffer.alloc(signingRequest.length + sodium.crypto_sign_BYTES)
 
-  sodium.crypto_sign(signedMsg, Buffer.from(signingRequest), secretKey)
+  sodium.crypto_sign(signedMsg, signingRequest, secretKey)
   const z32SignedMessage = z32.encode(signedMsg)
   console.log(`\nSigned message:\n${z32SignedMessage}`)
 
