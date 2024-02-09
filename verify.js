@@ -1,29 +1,29 @@
 #!/usr/bin/env node
 
 const sodium = require('sodium-native')
-const idEncoding = require('hypercore-id-encoding')
+const { decode: decodeSigningRequest } = require('hypercore-signing-request')
+const z32 = require('z32')
 
 async function main () {
-  const signedMessage = Buffer.from(process.argv[2], 'hex')
-  const publicKey = Buffer.from(process.argv[3], 'hex')
-  if (!signedMessage || !publicKey) {
-    console.log('Verify a signed message. Call as:\nhypercore-verify signedMessage publicKey')
+  const z32signedMessage = process.argv[2]
+  const z32publicKey = process.argv[3]
+  if (!z32signedMessage || !z32publicKey) {
+    console.log('Verify a signed message. Call as:\nhypercore-verify <z32SignedMessage> <z32PublicKey>')
     process.exit(1)
   }
+
+  const signedMessage = z32.decode(z32signedMessage)
+  const publicKey = z32.decode(z32publicKey)
 
   const reopenedMsg = Buffer.alloc(signedMessage.length - sodium.crypto_sign_BYTES)
   const trusted = sodium.crypto_sign_open(reopenedMsg, signedMessage, publicKey)
   if (!trusted) throw new Error('Invalid signature!')
 
   console.log('\nThe signature is valid.')
-  console.log('\nAuthenticated message:')
-  console.log(reopenedMsg.toString())
-
-  const lines = reopenedMsg.toString().split('\n')
-  const key = lines[0].split(' ')[1]
-  if (!idEncoding.isValid(key)) throw new Error('Invalid message structure (invalid key)')
-  const treeHash = lines[2].split(' ')[1]
-  if (!idEncoding.isValid(treeHash)) throw new Error('Invalid message structure (invalid treeHash)')
+  console.log('\nAuthenticated request:')
+  const decodedRequest = decodeSigningRequest(reopenedMsg)
+  console.log(decodedRequest)
+  console.log(`Signed by public key ${z32.encode(publicKey)}`)
 }
 
 main()
