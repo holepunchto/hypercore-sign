@@ -9,7 +9,7 @@
   "bin": {
     "hypercore-sign": "./sign.js",
     "hypercore-verify": "./verify.js",
-    "hypercore-sign-generate-keys": "./generate-keys"
+    "hypercore-sign-generate-keys": "./generate-keys.js"
   },
   "repository": {
     "type": "git",
