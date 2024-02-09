@@ -18,9 +18,9 @@
   "author": "Holepunch",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/HDegroote/hypercore-sign/issues"
+    "url": "https://github.com/holepunchto/hypercore-sign/issues"
   },
-  "homepage": "https://github.com/HDegroote/hypercore-sign#readme",
+  "homepage": "https://github.com/holepunchto/hypercore-sign#readme",
   "dependencies": {
     "hypercore-signing-request": "^3.0.1",
     "sodium-native": "^4.0.7",
