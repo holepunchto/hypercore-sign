@@ -1,6 +1,6 @@
 {
   "name": "hypercore-sign",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Sign Hypercores",
   "main": "index.js",
   "scripts": {
