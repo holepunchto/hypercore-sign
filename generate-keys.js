@@ -25,7 +25,7 @@ async function main () {
     console.log(`Secret already key written to ${secretKeyLoc}`)
     console.log(`Public already key written to ${publicKeyLoc}`)
     console.log()
-    console.log('Public key is', z32.encode(pubKey))
+    console.log('Public key is', z32.encode(fs.readFileSync(publicKeyLoc)))
     return
   }
 
