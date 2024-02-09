@@ -10,7 +10,7 @@ const z32 = require('z32')
 const homeDir = os.homedir()
 
 async function main () {
-  const dir = path.join(homeDir, '.hypercore-sign')
+  const dir = process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')
 
   await fsProm.mkdir(dir, { mode: 0o700, recursive: true })
   const secretKeyLoc = path.join(dir, 'private-key')

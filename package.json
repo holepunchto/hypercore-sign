@@ -4,7 +4,7 @@
   "description": "Sign Hypercores",
   "main": "index.js",
   "scripts": {
-    "test": "standard"
+    "test": "standard && brittle test.js --coverage"
   },
   "bin": {
     "hypercore-sign": "./sign.js",
@@ -27,6 +27,10 @@
     "z32": "^1.0.1"
   },
   "devDependencies": {
-    "standard": "^17.1.0"
+    "brittle": "^3.4.0",
+    "hypercore": "^10.32.8",
+    "random-access-memory": "^6.2.0",
+    "standard": "^17.1.0",
+    "test-tmp": "^1.1.1"
   }
 }
