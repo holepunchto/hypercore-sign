@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/HDegroote/hypercore-sign.git"
+    "url": "git+https://github.com/holepunchto/hypercore-sign.git"
   },
   "author": "Holepunch",
   "license": "Apache-2.0",
