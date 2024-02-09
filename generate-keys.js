@@ -21,11 +21,12 @@ async function main () {
   const secretKey = Buffer.alloc(sodium.crypto_sign_SECRETKEYBYTES)
   sodium.crypto_sign_keypair(pubKey, secretKey)
 
-  if (fs.existsSync(secretKeyLoc)) {
-    throw new Error(`Secret key file already exists at ${secretKeyLoc}`)
-  }
-  if (fs.existsSync(publicKeyLoc)) {
-    throw new Error(`Public key file already exists at ${publicKeyLoc}`)
+  if (fs.existsSync(publicKeyLoc) && fs.existsSync(secretKeyLoc)) {
+    console.log(`Secret already key written to ${secretKeyLoc}`)
+    console.log(`Public already key written to ${publicKeyLoc}`)
+    console.log()
+    console.log('Public key is', z32.encode(pubKey))
+    return
   }
 
   await fsProm.writeFile(
