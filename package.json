@@ -1,0 +1,31 @@
+{
+  "name": "@holepunchto/hypercore-sign",
+  "version": "0.0.0",
+  "description": "Sign Hypercores",
+  "main": "index.js",
+  "scripts": {
+    "test": "standard"
+  },
+  "bin": {
+    "hypercore-sign": "./sign.js",
+    "hypercore-verify": "./verify.js",
+    "hypercore-sign-generate-keys": "./generate-keys"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HDegroote/hypercore-sign.git"
+  },
+  "author": "Holepunch",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/HDegroote/hypercore-sign/issues"
+  },
+  "homepage": "https://github.com/HDegroote/hypercore-sign#readme",
+  "dependencies": {
+    "hypercore-id-encoding": "^1.2.0",
+    "sodium-native": "^4.0.7"
+  },
+  "devDependencies": {
+    "standard": "^17.1.0"
+  }
+}
