@@ -22,8 +22,9 @@
   },
   "homepage": "https://github.com/HDegroote/hypercore-sign#readme",
   "dependencies": {
-    "hypercore-id-encoding": "^1.2.0",
-    "sodium-native": "^4.0.7"
+    "hypercore-signing-request": "^3.0.1",
+    "sodium-native": "^4.0.7",
+    "z32": "^1.0.1"
   },
   "devDependencies": {
     "standard": "^17.1.0"

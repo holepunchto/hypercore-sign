@@ -5,6 +5,7 @@ const fs = require('fs')
 const fsProm = fs.promises
 const os = require('os')
 const sodium = require('sodium-native')
+const z32 = require('z32')
 
 const homeDir = os.homedir()
 
@@ -29,17 +30,16 @@ async function main () {
 
   await fsProm.writeFile(
     secretKeyLoc,
-    secretKey.toString('hex'),
+    z32.encode(secretKey),
     { mode: 0o600 }
   )
   await fsProm.writeFile(
     publicKeyLoc,
-    pubKey.toString('hex'),
+    z32.encode(pubKey),
     { mode: 0o600 }
   )
 
-  // Make fail when overwriting from within node
-  // and prompt a confirmation when overwriting from bash
+  // Prompt a confirmation when overwriting
   // (Because you probably don't want to overwrite these,
   // once they have been generated)
   fsProm.chmod(publicKeyLoc, 0o400)
