@@ -5,7 +5,7 @@ Sign and verify hypercores at specific lengths.
 ## Install
 
 ```
-npm i -g @holepunchto/hypercore-sign
+npm i -g hypercore-sign
 ```
 
 ## Run
