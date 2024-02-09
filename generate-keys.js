@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 const path = require('path')
-const fsProm = require('fs/promises')
+const fs = require('fs')
+const fsProm = fs.promises
 const os = require('os')
 const sodium = require('sodium-native')
 
@@ -18,6 +19,13 @@ async function main () {
   // TODO: consider encrypting the file and reading the pass from stdin for signing
   const secretKey = Buffer.alloc(sodium.crypto_sign_SECRETKEYBYTES)
   sodium.crypto_sign_keypair(pubKey, secretKey)
+
+  if (fs.existsSync(secretKeyLoc)) {
+    throw new Error(`Secret key file already exists at ${secretKeyLoc}`)
+  }
+  if (fs.existsSync(publicKeyLoc)) {
+    throw new Error(`Public key file already exists at ${publicKeyLoc}`)
+  }
 
   await fsProm.writeFile(
     secretKeyLoc,
