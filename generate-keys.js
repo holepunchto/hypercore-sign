@@ -47,6 +47,8 @@ async function main () {
 
   console.log(`Secret key written to ${secretKeyLoc}`)
   console.log(`Public key written to ${publicKeyLoc}`)
+  console.log()
+  console.log('Public key is', z32.encode(pubKey))
 }
 
 main()
