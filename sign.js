@@ -8,12 +8,6 @@ const { decode: decodeSigningRequest } = require('hypercore-signing-request')
 const z32 = require('z32')
 
 const homeDir = os.homedir()
-const secretKeyLoc = path.join(
-  homeDir, '.hypercore-sign', 'private-key'
-)
-const publicKeyLoc = path.join(
-  homeDir, '.hypercore-sign', 'public-key'
-)
 
 async function main () {
   const z32SigningRequest = process.argv[2]
@@ -21,6 +15,14 @@ async function main () {
     console.log('Sign a message. Call as:\nhypercore-sign <z32SigningRequest>')
     process.exit(1)
   }
+
+  const keysDir = process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')
+  const secretKeyLoc = path.join(
+    keysDir, 'private-key'
+  )
+  const publicKeyLoc = path.join(
+    keysDir, 'public-key'
+  )
 
   const signingRequest = z32.decode(z32SigningRequest)
   try {
