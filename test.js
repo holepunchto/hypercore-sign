@@ -69,7 +69,7 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
   }
 
   const readPublicKey = await fsProm.readFile(
-    path.join(keysDir, 'public-key'), 'utf-8'
+    path.join(keysDir, 'default.public'), 'utf-8'
   )
   t.alike(
     publicKey,

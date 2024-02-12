@@ -16,7 +16,11 @@ npm i -g hypercore-sign
 ## Run
 
 ### Setup keys
-Run this only once, to setup a public/private key pair in directory `~/.hypercore-sign`.
+Run this only once, to setup a public/private key pair.
+
+By default, keys are written to:
+- secret key: `~/.hypercore-sign/default`
+- public key: `~/.hypercore-sign/default.public`
 
 ```
 hypercore-sign generate-keys

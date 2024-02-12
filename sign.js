@@ -19,10 +19,10 @@ async function main () {
 
   const keysDir = process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')
   const secretKeyLoc = path.join(
-    keysDir, 'private-key'
+    keysDir, 'default'
   )
   const publicKeyLoc = path.join(
-    keysDir, 'public-key'
+    keysDir, 'default.public'
   )
 
   const signingRequest = z32.decode(z32SigningRequest)

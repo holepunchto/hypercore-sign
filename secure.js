@@ -77,26 +77,15 @@ const encryptedKey = {
 
 module.exports = {
   generateKeys,
-  encryptSecretKey,
   sign,
   readPassword
 }
 
-function generateKeys () {
+function generateKeys (pwd) {
+  const id = Buffer.alloc(8)
+
   const publicKey = Buffer.alloc(sodium.crypto_sign_PUBLICKEYBYTES)
   const secretKey = Buffer.alloc(sodium.crypto_sign_SECRETKEYBYTES)
-
-  sodium.crypto_sign_keypair(publicKey, secretKey)
-
-  return {
-    publicKey,
-    secretKey
-  }
-}
-
-function encryptSecretKey (secretKey, pwd) {
-  const id = Buffer.alloc(8)
-  sodium.randombytes_buf(id)
 
   const salt = Buffer.alloc(32)
   const kdfOutput = Buffer.alloc(8 + 64 + 32)
@@ -107,12 +96,10 @@ function encryptSecretKey (secretKey, pwd) {
     mem: sodium.crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE
   }
 
+  sodium.randombytes_buf(id)
   sodium.randombytes_buf(salt)
 
-  sodium.sodium_mprotect_readwrite(pwd)
-  sodium.crypto_pwhash_scryptsalsa208sha256(kdfOutput, pwd, salt, params.ops, params.mem)
-  sodium.sodium_memzero(pwd)
-  sodium.sodium_mprotect_noaccess(pwd)
+  sodium.crypto_sign_keypair(publicKey, secretKey)
 
   const checkSumData = c.encode(labelledKey, { id, secretKey })
 
@@ -127,6 +114,11 @@ function encryptSecretKey (secretKey, pwd) {
 
   sodium.sodium_memzero(secretKey)
 
+  sodium.sodium_mprotect_readwrite(pwd)
+  sodium.crypto_pwhash_scryptsalsa208sha256(kdfOutput, pwd, salt, params.ops, params.mem)
+  sodium.sodium_memzero(pwd)
+  sodium.sodium_mprotect_noaccess(pwd)
+
   xor(payload, kdfOutput)
   sodium.sodium_memzero(kdfOutput)
 
@@ -138,7 +130,11 @@ function encryptSecretKey (secretKey, pwd) {
 
   sodium.sodium_memzero(payload)
 
-  return encrypted
+  return {
+    id,
+    publicKey,
+    secretKey: encrypted
+  }
 }
 
 function sign (data, keyBuffer, pwd) {
