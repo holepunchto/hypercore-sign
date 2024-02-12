@@ -78,6 +78,7 @@ const encryptedKey = {
 module.exports = {
   generateKeys,
   sign,
+  confirmPassword,
   readPassword
 }
 
@@ -137,6 +138,21 @@ function generateKeys (pwd) {
   }
 }
 
+async function confirmPassword (pwd) {
+  const check = await readPassword('confirm password: ')
+  if (pwd.byteLength !== check.byteLength) return false
+
+  sodium.sodium_mprotect_readonly(pwd)
+  sodium.sodium_mprotect_readwrite(check)
+
+  const cmp = sodium.sodium_memcmp(pwd, check)
+
+  sodium.sodium_memzero(check)
+  sodium.sodium_mprotect_noaccess(pwd)
+
+  return cmp
+}
+
 function sign (data, keyBuffer, pwd) {
   const signature = Buffer.alloc(sodium.crypto_sign_BYTES)
 
@@ -174,23 +190,36 @@ function sign (data, keyBuffer, pwd) {
 }
 
 // function to accept password from user
-function readPassword () {
+function readPassword (prompt = 'password: ') {
   const buf = sodium.sodium_malloc(4096)
 
-  process.stdout.write('password: ')
+  process.stdout.write(prompt)
   return new Promise((resolve, reject) => {
     fs.read(0, buf, 0, buf.byteLength, null, (err, bytesRead, buf) => {
       if (err) return reject(err)
-      buf = buf.subarray(0, bytesRead - 1)
 
-      if (bytesRead - 1 < MIN_PASSWORD_LENGTH) {
+      // trim last newline
+      if (bytesRead > 0 && buf[bytesRead - 1] === 10) bytesRead--
+      if (bytesRead > 0 && buf[bytesRead - 1] === 13) bytesRead--
+
+      if (bytesRead < MIN_PASSWORD_LENGTH) {
         return reject(new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`))
       }
+
+      if (isWhitespace(buf[0]) || isWhitespace(buf[bytesRead - 1])) {
+        return reject(new Error('Must not start or end with whitespace'))
+      }
+
+      buf = buf.subarray(0, bytesRead)
 
       sodium.sodium_mprotect_noaccess(buf)
       resolve(buf)
     })
   })
+}
+
+function isWhitespace (byte) {
+  return byte === 10 || byte === 13 || byte === 32 || byte === 9
 }
 
 function xor (a, b) {

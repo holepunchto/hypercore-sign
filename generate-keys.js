@@ -8,7 +8,7 @@ const z32 = require('z32')
 
 const homeDir = os.homedir()
 
-const { readPassword, generateKeys } = require('./secure')
+const { readPassword, generateKeys, confirmPassword } = require('./secure')
 
 async function main () {
   const dir = process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')
@@ -26,6 +26,12 @@ async function main () {
   }
 
   const password = await readPassword()
+
+  if (!(await confirmPassword(password))) {
+    console.log('Passwords do not match')
+    process.exit(1)
+  }
+
   const { secretKey, publicKey } = generateKeys(password)
 
   await fsProm.writeFile(
