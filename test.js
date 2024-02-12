@@ -9,6 +9,7 @@ const tmp = require('test-tmp')
 const z32 = require('z32')
 
 const DEBUG_LOG = false
+const DUMMY_PASSWORD = `${Math.random().toString().slice(2)}`
 
 async function getSignignRequest (t) {
   const core = new Hypercore(RAM.reusable(), { compat: false })
@@ -46,6 +47,10 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
 
       if (DEBUG_LOG) console.log('[generate-keys]', data.toString())
 
+      if (data.includes('password')) {
+        // Enter the password
+        genKeysProcess.stdin.write(DUMMY_PASSWORD)
+      }
       if (data.includes('Public key is')) {
         tCreateKeys.pass('Key creation done')
         publicKey = data.split('Public key is ')[1].trim()
@@ -87,6 +92,11 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
     signProcess.stdout.on('data', (bufferData) => {
       const data = bufferData.toString()
       if (DEBUG_LOG) console.log('[sign]', data)
+
+      if (data.includes('password:')) {
+        // Enter the password
+        signProcess.stdin.write(DUMMY_PASSWORD)
+      }
 
       if (data.includes('hypercore-verify')) {
         verifyParams = data.split('hypercore-verify ')[1].trim().split(' ')
