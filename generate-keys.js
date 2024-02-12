@@ -17,10 +17,6 @@ async function main () {
   const secretKeyLoc = path.join(dir, 'private-key')
   const publicKeyLoc = path.join(dir, 'public-key')
 
-  const password = await readPassword()
-
-  const { publicKey, secretKey } = generateKeys(password)
-
   if (fs.existsSync(publicKeyLoc) && fs.existsSync(secretKeyLoc)) {
     console.log(`Secret key already written to ${secretKeyLoc}`)
     console.log(`Public key already written to ${publicKeyLoc}`)
@@ -28,6 +24,10 @@ async function main () {
     console.log('Public key is', fs.readFileSync(publicKeyLoc, 'utf-8'))
     return
   }
+
+  const password = await readPassword()
+
+  const { publicKey, secretKey } = generateKeys(password)
 
   await fsProm.writeFile(
     secretKeyLoc,
