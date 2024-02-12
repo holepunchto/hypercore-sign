@@ -10,6 +10,7 @@ const b4a = require('b4a')
 const z32 = require('z32')
 
 const DEBUG_LOG = false
+const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
 
 async function getSigningRequest (z32publicKey, t) {
   const namespace = b4a.alloc(32, 1)
@@ -69,6 +70,10 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
 
       if (DEBUG_LOG) console.log('[generate-keys]', data.toString())
 
+      if (data.includes('password')) {
+        // Enter the password
+        genKeysProcess.stdin.write(DUMMY_PASSWORD)
+      }
       if (data.includes('Public key is')) {
         tCreateKeys.pass('Key creation done')
         publicKey = data.split('Public key is ')[1].trim()
@@ -87,7 +92,7 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
   }
 
   const readPublicKey = await fsProm.readFile(
-    path.join(keysDir, 'public-key'), 'utf-8'
+    path.join(keysDir, 'default.public'), 'utf-8'
   )
   t.alike(
     publicKey,
@@ -112,6 +117,11 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
     signProcess.stdout.on('data', (bufferData) => {
       const data = bufferData.toString()
       if (DEBUG_LOG) console.log('[sign]', data)
+
+      if (data.includes('password:')) {
+        // Enter the password
+        signProcess.stdin.write(DUMMY_PASSWORD)
+      }
 
       if (data.includes('hypercore-verify')) {
         verifyParams = data.split('hypercore-verify ')[1].trim().split(' ')

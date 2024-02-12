@@ -3,12 +3,12 @@
 const path = require('path')
 const fsProm = require('fs/promises')
 const os = require('os')
-const sodium = require('sodium-native')
 const request = require('hypercore-signing-request')
 const z32 = require('z32')
 const { version } = require('./package.json')
 
 const homeDir = os.homedir()
+const { readPassword, sign } = require('./secure')
 
 async function main () {
   const z32SigningRequest = process.argv[2]
@@ -22,10 +22,10 @@ async function main () {
 
   const keysDir = process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')
   const secretKeyLoc = path.join(
-    keysDir, 'private-key'
+    keysDir, 'default'
   )
   const publicKeyLoc = path.join(
-    keysDir, 'public-key'
+    keysDir, 'default.public'
   )
 
   const signingRequest = z32.decode(z32SigningRequest)
@@ -48,12 +48,12 @@ async function main () {
   )
   const z32PubKey = z32.encode(publicKey)
 
+  const password = await readPassword()
   const signable = request.signable(publicKey, decodedRequest)
-  const signature = Buffer.alloc(sodium.crypto_sign_BYTES)
+  const signature = sign(signable, secretKey, password)
 
-  sodium.crypto_sign_detached(signature, signable, secretKey)
   const z32signature = z32.encode(signature)
-  console.log(`\nSigned message:\n${z32signature}`)
+  console.log(`\nSignature:\n${z32signature}`)
 
   console.log(`\nVerifiable with pub key: ${z32PubKey}`)
   console.log('\nFull command to verify:')
