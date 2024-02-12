@@ -3,11 +3,11 @@
 const path = require('path')
 const fsProm = require('fs/promises')
 const os = require('os')
-const sodium = require('sodium-native')
 const { decode: decodeSigningRequest } = require('hypercore-signing-request')
 const z32 = require('z32')
 
 const homeDir = os.homedir()
+const { readPassword, sign } = require('./secure')
 
 async function main () {
   const z32SigningRequest = process.argv[2]
@@ -43,9 +43,9 @@ async function main () {
   )
   const z32PubKey = z32.encode(publicKey)
 
-  const signedMsg = Buffer.alloc(signingRequest.length + sodium.crypto_sign_BYTES)
+  const password = await readPassword()
+  const signedMsg = sign(signingRequest, secretKey, password)
 
-  sodium.crypto_sign(signedMsg, signingRequest, secretKey)
   const z32SignedMessage = z32.encode(signedMsg)
   console.log(`\nSigned message:\n${z32SignedMessage}`)
 
