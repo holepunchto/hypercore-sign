@@ -6,23 +6,46 @@ const RAM = require('random-access-memory')
 const { generate } = require('hypercore-signing-request')
 const { spawn } = require('child_process')
 const tmp = require('test-tmp')
+const b4a = require('b4a')
 const z32 = require('z32')
 
 const DEBUG_LOG = false
 
-async function getSignignRequest (t) {
-  const core = new Hypercore(RAM.reusable(), { compat: false })
+async function getSigningRequest (z32publicKey, t) {
+  const namespace = b4a.alloc(32, 1)
+  const publicKey = z32.decode(z32publicKey)
+
+  const core = new Hypercore(RAM.reusable(), {
+    compat: false,
+    manifest: {
+      version: 1,
+      quorum: 1,
+      signers: [{ publicKey, namespace }]
+    }
+  })
+
   t.teardown(async () => { await core.close() })
 
-  await core.append('Block 0')
-  await core.append('Block 1')
+  await core.ready()
 
-  const request = await generate(core)
-  return z32.encode(request)
+  const batch = core.batch()
+  await batch.ready()
+
+  await batch.append('Block 0')
+  await batch.append('Block 1')
+  await batch.flush()
+
+  const request = await generate(batch)
+  return {
+    request: z32.encode(request),
+    verify (signature) {
+      const b = batch.createTreeBatch()
+      return core.core.tree.crypto.verify(b.signable(namespace), signature, publicKey)
+    }
+  }
 }
 
 test('Basic flow: create keys, sign a core and verify it', async t => {
-  const signRequest = await getSignignRequest(t)
   const keysDir = await tmp(t)
 
   const tCreateKeys = t.test()
@@ -72,11 +95,13 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
     'Public key got written to file'
   )
 
+  const { request, verify } = await getSigningRequest(publicKey, t)
+
   const tSign = t.test()
   tSign.plan(2)
 
   const signProcess = spawn(
-    'node', ['sign.js', signRequest], { env }
+    'node', ['sign.js', request], { env }
   )
   signProcess.on('close', (code) => {
     tSign.is(code, 0, '0 status code for message signing process')
@@ -135,6 +160,14 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
     })
 
     await tVerify
+
+    // verify against actual core
+    const signature = z32.decode(verifyParams[0])
+    t.ok(verify(signature))
+
+    // sanity check
+    signature.fill(0)
+    t.absent(verify(signature))
   } finally {
     // To ensure the process is always killed
     verifyProcess.kill('SIGKILL')

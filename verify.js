@@ -1,28 +1,43 @@
 #!/usr/bin/env node
 
 const sodium = require('sodium-native')
-const { decode: decodeSigningRequest } = require('hypercore-signing-request')
+const request = require('hypercore-signing-request')
 const z32 = require('z32')
 const { version } = require('./package.json')
 
 async function main () {
-  const z32signedMessage = process.argv[2]
-  const z32publicKey = process.argv[3]
-  if (!z32signedMessage || !z32publicKey) {
-    console.log(`hypercore-verify v${version}.\nVerify a signed message. Call as:\nhypercore-verify <z32SignedMessage> <z32PublicKey>`)
+  const z32signature = process.argv[2]
+  const z32request = process.argv[3]
+  const z32publicKey = process.argv[4]
+  if (!z32signature || !z32request || !z32publicKey) {
+    console.log(`hypercore-verify ${version}\n`)
+    console.log('Verify a signed message.')
+    console.log('\nUsage:')
+    console.log('hypercore-verify <z32signature> <z32request> <z32publicKey>\n')
     process.exit(1)
   }
 
-  const signedMessage = z32.decode(z32signedMessage)
   const publicKey = z32.decode(z32publicKey)
+  const signature = z32.decode(z32signature)
 
-  const reopenedMsg = Buffer.alloc(signedMessage.length - sodium.crypto_sign_BYTES)
-  const trusted = sodium.crypto_sign_open(reopenedMsg, signedMessage, publicKey)
-  if (!trusted) throw new Error('Invalid signature!')
+  let decodedRequest = null
+  try {
+    decodedRequest = request.decode(z32.decode(z32request))
+    console.log('Signing request:')
+    console.log(decodedRequest)
+  } catch (e) {
+    console.log(e)
+    console.error('\nCould not decode the signing request. Invalid signing request?')
+    process.exit(1)
+  }
+
+  const signable = request.signable(publicKey, decodedRequest)
+  if (!sodium.crypto_sign_verify_detached(signature, signable, publicKey)) {
+    throw new Error('Invalid signature!')
+  }
 
   console.log('\nThe signature is valid.')
   console.log('\nAuthenticated request:')
-  const decodedRequest = decodeSigningRequest(reopenedMsg)
   console.log(decodedRequest)
   console.log(`Signed by public key ${z32.encode(publicKey)}`)
 }
