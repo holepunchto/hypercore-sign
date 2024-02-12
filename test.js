@@ -9,7 +9,7 @@ const tmp = require('test-tmp')
 const z32 = require('z32')
 
 const DEBUG_LOG = false
-const DUMMY_PASSWORD = `${Math.random().toString().slice(2)}`
+const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
 
 async function getSignignRequest (t) {
   const core = new Hypercore(RAM.reusable(), { compat: false })
