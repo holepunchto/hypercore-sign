@@ -22,10 +22,10 @@ async function main () {
   sodium.crypto_sign_keypair(pubKey, secretKey)
 
   if (fs.existsSync(publicKeyLoc) && fs.existsSync(secretKeyLoc)) {
-    console.log(`Secret already key written to ${secretKeyLoc}`)
-    console.log(`Public already key written to ${publicKeyLoc}`)
+    console.log(`Secret key already written to ${secretKeyLoc}`)
+    console.log(`Public key already written to ${publicKeyLoc}`)
     console.log()
-    console.log('Public key is', z32.encode(fs.readFileSync(publicKeyLoc)))
+    console.log('Public key is', fs.readFileSync(publicKeyLoc, 'utf-8'))
     return
   }
 
@@ -43,8 +43,8 @@ async function main () {
   // Prompt a confirmation when overwriting
   // (Because you probably don't want to overwrite these,
   // once they have been generated)
-  fsProm.chmod(publicKeyLoc, 0o400)
-  fsProm.chmod(secretKeyLoc, 0o400)
+  await fsProm.chmod(publicKeyLoc, 0o400)
+  await fsProm.chmod(secretKeyLoc, 0o400)
 
   console.log(`Secret key written to ${secretKeyLoc}`)
   console.log(`Public key written to ${publicKeyLoc}`)
