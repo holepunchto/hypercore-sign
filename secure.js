@@ -138,7 +138,7 @@ function generateKeys (pwd) {
 }
 
 function sign (data, keyBuffer, pwd) {
-  const signed = Buffer.alloc(data.length + sodium.crypto_sign_BYTES)
+  const signature = Buffer.alloc(sodium.crypto_sign_BYTES)
 
   const { params, salt, payload } = c.decode(encryptedKey, keyBuffer)
 
@@ -166,11 +166,11 @@ function sign (data, keyBuffer, pwd) {
     throw new Error('Key decryption failed')
   }
 
-  sodium.crypto_sign(signed, data, secretKey)
+  sodium.crypto_sign_detached(signature, data, secretKey)
   sodium.sodium_memzero(secretKey)
   sodium.sodium_memzero(payload)
 
-  return signed
+  return signature
 }
 
 // function to accept password from user

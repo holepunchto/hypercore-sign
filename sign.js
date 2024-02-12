@@ -3,7 +3,7 @@
 const path = require('path')
 const fsProm = require('fs/promises')
 const os = require('os')
-const { decode: decodeSigningRequest } = require('hypercore-signing-request')
+const request = require('hypercore-signing-request')
 const z32 = require('z32')
 const { version } = require('./package.json')
 
@@ -13,7 +13,10 @@ const { readPassword, sign } = require('./secure')
 async function main () {
   const z32SigningRequest = process.argv[2]
   if (!z32SigningRequest) {
-    console.log(`hypercore-sign v${version}.\nSign a hypercore signing request. Call as:\nhypercore-sign <z32SigningRequest>`)
+    console.log(`hypercore-sign ${version}\n`)
+    console.log('Sign a hypercore signing request.')
+    console.log('\nUsage:')
+    console.log('hypercore-sign <z32SigningRequest>')
     process.exit(1)
   }
 
@@ -26,8 +29,9 @@ async function main () {
   )
 
   const signingRequest = z32.decode(z32SigningRequest)
+  let decodedRequest = null
   try {
-    const decodedRequest = decodeSigningRequest(signingRequest)
+    decodedRequest = request.decode(signingRequest)
     console.log('Signing request:')
     console.log(decodedRequest)
   } catch (e) {
@@ -45,14 +49,15 @@ async function main () {
   const z32PubKey = z32.encode(publicKey)
 
   const password = await readPassword()
-  const signedMsg = sign(signingRequest, secretKey, password)
+  const signable = request.signable(publicKey, decodedRequest)
+  const signature = sign(signable, secretKey, password)
 
-  const z32SignedMessage = z32.encode(signedMsg)
-  console.log(`\nSigned message:\n${z32SignedMessage}`)
+  const z32signature = z32.encode(signature)
+  console.log(`\nSignature:\n${z32signature}`)
 
   console.log(`\nVerifiable with pub key: ${z32PubKey}`)
   console.log('\nFull command to verify:')
-  console.log(`hypercore-verify ${z32SignedMessage} ${z32PubKey}`)
+  console.log(`hypercore-verify ${z32signature} ${z32SigningRequest} ${z32PubKey}`)
 }
 
 main()
