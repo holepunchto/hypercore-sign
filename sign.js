@@ -47,9 +47,9 @@ async function main () {
     await fsProm.readFile(publicKeyLoc, 'utf-8')
   )
   const z32PubKey = z32.encode(publicKey)
+  const signable = request.signable(publicKey, decodedRequest)
 
   const password = await readPassword()
-  const signable = request.signable(publicKey, decodedRequest)
   const signature = sign(signable, secretKey, password)
 
   const z32signature = z32.encode(signature)
