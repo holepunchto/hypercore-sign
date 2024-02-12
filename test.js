@@ -6,23 +6,39 @@ const RAM = require('random-access-memory')
 const { generate } = require('hypercore-signing-request')
 const { spawn } = require('child_process')
 const tmp = require('test-tmp')
+const b4a = require('b4a')
 const z32 = require('z32')
 
 const DEBUG_LOG = false
 
-async function getSignignRequest (t) {
-  const core = new Hypercore(RAM.reusable(), { compat: false })
+async function getSigningRequest (publicKey, t) {
+  const core = new Hypercore(RAM.reusable(), {
+    compat: false,
+    manifest: {
+      version: 1,
+      quorum: 1,
+      signers: [{
+        publicKey: z32.decode(publicKey),
+        namespace: b4a.alloc(32, 1)
+      }]
+    }
+  })
+
   t.teardown(async () => { await core.close() })
 
-  await core.append('Block 0')
-  await core.append('Block 1')
+  await core.ready()
 
-  const request = await generate(core)
+  const batch = core.batch()
+  await batch.ready()
+
+  await batch.append('Block 0')
+  await batch.append('Block 1')
+
+  const request = await generate(batch)
   return z32.encode(request)
 }
 
 test('Basic flow: create keys, sign a core and verify it', async t => {
-  const signRequest = await getSignignRequest(t)
   const keysDir = await tmp(t)
 
   const tCreateKeys = t.test()
@@ -71,6 +87,8 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
     readPublicKey,
     'Public key got written to file'
   )
+
+  const signRequest = await getSigningRequest(publicKey, t)
 
   const tSign = t.test()
   tSign.plan(2)
