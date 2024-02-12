@@ -188,7 +188,7 @@ function readPassword () {
       buf = buf.subarray(0, bytesRead - 1)
 
       if (bytesRead - 1 < MIN_PASSWORD_LENGTH) {
-        reject(new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`))
+        return reject(new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`))
       }
 
       sodium.sodium_mprotect_noaccess(buf)
@@ -198,7 +198,11 @@ function readPassword () {
 }
 
 function xor (a, b) {
-  for (let i = 0; i < Math.min(a.length, b.length); i++) {
+  if (a.byteLength !== b.byteLength) {
+    throw new Error('Buffers should be equal in size')
+  }
+
+  for (let i = 0; i < a.length; i++) {
     a[i] ^= b[i]
   }
 }
