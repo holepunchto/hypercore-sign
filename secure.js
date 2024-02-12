@@ -118,7 +118,7 @@ function generateKeys (pwd) {
   sodium.sodium_mprotect_readwrite(pwd)
   sodium.crypto_pwhash_scryptsalsa208sha256(kdfOutput, pwd, salt, params.ops, params.mem)
   sodium.sodium_memzero(pwd)
-  sodium.sodium_mprotect_noaccess(pwd)
+  sodium.sodium_free(pwd)
 
   xor(payload, kdfOutput)
   sodium.sodium_memzero(kdfOutput)
@@ -148,6 +148,8 @@ async function confirmPassword (pwd) {
   const cmp = sodium.sodium_memcmp(pwd, check)
 
   sodium.sodium_memzero(check)
+  sodium.sodium_free(check)
+
   sodium.sodium_mprotect_noaccess(pwd)
 
   return cmp
@@ -163,7 +165,7 @@ function sign (data, keyBuffer, pwd) {
   sodium.sodium_mprotect_readwrite(pwd)
   sodium.crypto_pwhash_scryptsalsa208sha256(kdfOutput, pwd, salt, params.ops, params.mem)
   sodium.sodium_memzero(pwd)
-  sodium.sodium_mprotect_noaccess(pwd)
+  sodium.sodium_free(pwd)
 
   xor(payload, kdfOutput)
   sodium.sodium_memzero(kdfOutput)
