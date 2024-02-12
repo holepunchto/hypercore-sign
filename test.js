@@ -41,7 +41,7 @@ async function getSigningRequest (z32publicKey, t) {
     request: z32.encode(request),
     verify (signature) {
       const b = batch.createTreeBatch()
-      return core.core.tree.crypto.verify(b.signable(namespace), signature, publicKey)
+      return core.core.tree.crypto.verify(b.signable(batch.key), signature, publicKey)
     }
   }
 }
