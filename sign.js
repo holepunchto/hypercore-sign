@@ -6,13 +6,14 @@ const os = require('os')
 const sodium = require('sodium-native')
 const { decode: decodeSigningRequest } = require('hypercore-signing-request')
 const z32 = require('z32')
+const { version } = require('./package.json')
 
 const homeDir = os.homedir()
 
 async function main () {
   const z32SigningRequest = process.argv[2]
   if (!z32SigningRequest) {
-    console.log('Sign a message. Call as:\nhypercore-sign <z32SigningRequest>')
+    console.log(`hypercore-sign v${version}.\nSign a hypercore signing request. Call as:\nhypercore-sign <z32SigningRequest>`)
     process.exit(1)
   }
 

@@ -3,12 +3,13 @@
 const sodium = require('sodium-native')
 const { decode: decodeSigningRequest } = require('hypercore-signing-request')
 const z32 = require('z32')
+const { version } = require('./package.json')
 
 async function main () {
   const z32signedMessage = process.argv[2]
   const z32publicKey = process.argv[3]
   if (!z32signedMessage || !z32publicKey) {
-    console.log('Verify a signed message. Call as:\nhypercore-verify <z32SignedMessage> <z32PublicKey>')
+    console.log(`hypercore-verify v${version}.\nVerify a signed message. Call as:\nhypercore-verify <z32SignedMessage> <z32PublicKey>`)
     process.exit(1)
   }
 
