@@ -10,10 +10,10 @@ async function main () {
   const z32request = process.argv[3]
   const z32publicKey = process.argv[4]
   if (!z32signature || !z32request || !z32publicKey) {
-    console.log(`hypercore-sign ${version}\n`)
+    console.log(`hypercore-verify ${version}\n`)
     console.log('Verify a signed message.')
     console.log('\nUsage:')
-    console.log('hypercore-sign verify <z32signature> <z32request> <z32publicKey>\n')
+    console.log('hypercore-verify <z32signature> <z32request> <z32publicKey>\n')
     process.exit(1)
   }
 
