@@ -8,7 +8,7 @@ const z32 = require('z32')
 
 const homeDir = os.homedir()
 
-const { readPassword, generateKeys, confirmPassword } = require('./secure')
+const { readPassword, generateKeys, confirmPassword } = require('./lib/secure')
 
 async function main () {
   const dir = process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')

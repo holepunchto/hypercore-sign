@@ -8,7 +8,7 @@ const z32 = require('z32')
 const { version } = require('./package.json')
 
 const homeDir = os.homedir()
-const { readPassword, sign } = require('./secure')
+const { readPassword, sign } = require('./lib/secure')
 
 async function main () {
   const z32SigningRequest = process.argv[2]
