@@ -32,8 +32,9 @@ async function main () {
   let decodedRequest = null
   try {
     decodedRequest = request.decode(signingRequest)
-    console.log('Signing request:')
+    console.log('Signing request:\n')
     console.log(decodedRequest)
+    console.log()
   } catch (e) {
     console.log(e)
     console.error('\nCould not decode the signing request. Invalid signing request?')
@@ -53,10 +54,10 @@ async function main () {
   const signature = sign(signable, secretKey, password)
 
   const z32signature = z32.encode(signature)
-  console.log(`\nSignature:\n${z32signature}`)
+  console.log(`\nSignature:\n\n${z32signature}`)
 
-  console.log(`\nVerifiable with pub key: ${z32PubKey}`)
-  console.log('\nFull command to verify:')
+  console.log(`\nVerifiable with pub key:\n\n${z32PubKey}`)
+  console.log('\nFull command to verify:\n')
   console.log(`hypercore-verify ${z32signature} ${z32SigningRequest} ${z32PubKey}`)
 }
 
