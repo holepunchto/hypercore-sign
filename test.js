@@ -34,7 +34,7 @@ async function getSigningRequest (z32publicKey, t) {
 
   await batch.append('Block 0')
   await batch.append('Block 1')
-  await batch.flush()
+  await batch.flush({ keyPair: null })
 
   const request = await generate(batch)
   return {
