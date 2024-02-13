@@ -26,7 +26,7 @@ By default, keys are written to:
 hypercore-sign generate-keys
 
 # you will be prompted for password
-> Password: ...
+> Key-pair password:...
 ```
 
 ### Sign Hypercores
@@ -44,7 +44,7 @@ For example:
 hypercore-sign yr8oytuhdpmg4e511nj8thyo9mju1uaw8npox9dtzpo6ndu73w9xir69yryyyyebybywj5ifg81e8ikqbokxj1uehb1r6pkuex9s91axybjybajc47dhsgtjr9p58q8perk758qmxqn3idu5hiu5xw1iutce8xhmtmi6oxx3
 
 # you will be prompted for password
-> Password: ...
+> Key-pair password:...
 ```
 
 ### Verify Signatures
