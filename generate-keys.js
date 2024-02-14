@@ -30,6 +30,8 @@ async function main () {
     return
   }
 
+  console.log('Your secret key will be encrypted with a password.')
+  console.log('Please choose one now:\n')
   const password = await readPassword()
 
   if (!(await confirmPassword(password))) {

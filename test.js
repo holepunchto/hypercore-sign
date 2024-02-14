@@ -73,7 +73,7 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
 
       if (DEBUG_LOG) console.log('[generate-keys]', data.toString())
 
-      if (data.includes('password')) {
+      if (data.includes('password:')) {
         // Enter the password
         genKeysProcess.stdin.write(DUMMY_PASSWORD)
       }
