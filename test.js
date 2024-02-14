@@ -8,6 +8,9 @@ const { spawn } = require('child_process')
 const tmp = require('test-tmp')
 const b4a = require('b4a')
 const z32 = require('z32')
+const c = require('compact-encoding')
+
+const { Response } = require('./lib/messages')
 
 const DEBUG_LOG = false
 const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
@@ -112,7 +115,7 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
     tSign.is(code, 0, '0 status code for message signing process')
   })
 
-  let verifyParams = null
+  let response = null
   try {
     signProcess.stdout.on('data', (bufferData) => {
       const data = bufferData.toString()
@@ -123,8 +126,8 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
         signProcess.stdin.write(DUMMY_PASSWORD)
       }
 
-      if (data.includes('hypercore-verify')) {
-        verifyParams = data.split('hypercore-verify ')[1].trim().split(' ')
+      if (data.includes('Reply with:')) {
+        response = data.split('Reply with:')[1].trim()
         tSign.pass('Successfully signed the message')
       }
     })
@@ -144,7 +147,7 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
   tVerify.plan(2)
 
   const verifyProcess = spawn(
-    'node', ['verify.js', ...verifyParams], { env }
+    'node', ['verify.js', response, request, publicKey], { env }
   )
   verifyProcess.on('close', (code) => {
     tVerify.is(code, 0, '0 status code for verify process')
@@ -172,7 +175,7 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
     await tVerify
 
     // verify against actual core
-    const signature = z32.decode(verifyParams[0])
+    const { signature } = c.decode(Response, z32.decode(response))
     t.ok(verify(signature))
 
     // sanity check
