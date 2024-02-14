@@ -8,6 +8,7 @@ const c = require('compact-encoding')
 const { version } = require('./package.json')
 const { Response } = require('./lib/messages')
 const { hash } = require('./lib/secure')
+const { MAX_SUPPORTED_VERSION } = require('./lib/constants')
 
 async function main () {
   const response = process.argv[2]
@@ -31,6 +32,10 @@ async function main () {
     console.log(e)
     console.error('\nCould not decode the signing request. Invalid signing request?')
     process.exit(1)
+  }
+
+  if (req.version > MAX_SUPPORTED_VERSION) {
+    throw new Error('Request version not supported, please update')
   }
 
   if (Buffer.compare(res.requestHash, hash(z32.decode(signingRequest))) !== 0) {

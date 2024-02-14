@@ -10,6 +10,7 @@ const c = require('compact-encoding')
 const { version } = require('./package.json')
 const { readPassword, sign, hash } = require('./lib/secure')
 const { Response } = require('./lib/messages')
+const { MAX_SUPPORTED_VERSION } = require('./lib/constants')
 
 const homeDir = os.homedir()
 
@@ -35,6 +36,10 @@ async function main () {
     console.log(e)
     console.error('\nCould not decode the signing request. Invalid signing request?')
     process.exit(1)
+  }
+
+  if (req.version > MAX_SUPPORTED_VERSION) {
+    throw new Error('Request version not supported, please update')
   }
 
   console.log('Signing request:\n')
