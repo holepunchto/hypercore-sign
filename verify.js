@@ -51,10 +51,14 @@ async function main () {
     throw new Error('Invalid signature!')
   }
 
-  console.log('\nThe signature is valid.')
-  console.log('\nAuthenticated request:')
-  console.log(req)
-  console.log(`Signed by public key ${z32.encode(publicKey)}`)
+  console.log('\nSignature verified.')
+  console.log(`\n${z32.encode(publicKey)} has signed the following request:`)
+  console.log({
+    core: req.id,
+    fork: req.fork,
+    length: req.length,
+    treeHash: req.treeHash.toString('hex')
+  })
 }
 
 main()

@@ -159,22 +159,26 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
   })
 
   try {
+    let data = ''
     verifyProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString()
+      data += bufferData.toString()
+    })
+
+    verifyProcess.stderr.on('data', (data) => {
+      console.error(data.toString())
+      t.fail('verify errored')
+    })
+
+    verifyProcess.stdout.on('close', () => {
       if (DEBUG_LOG) console.log('[verify]', data)
 
-      if (data.includes('Signed by public key')) {
+      if (data.includes('Signature verified.')) {
         if (data.includes(publicKey)) {
           tVerify.pass('Verified that the message got signed by the correct public key')
         } else {
           tVerify.fail('Message was signed by an incorrect public key--bug in test setup')
         }
       }
-    })
-
-    verifyProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('verify errored')
     })
 
     await tVerify

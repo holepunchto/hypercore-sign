@@ -54,7 +54,7 @@ async function main () {
   // once they have been generated)
   await fsProm.chmod(secretKeyPath, USER_ONLY_R)
 
-  console.log(`Secret key written to ${secretKeyPath}`)
+  console.log(`\nSecret key written to ${secretKeyPath}`)
   console.log(`Public key written to ${publicKeyPath}`)
   console.log()
   console.log('Public key is', z32.encode(publicKey))
