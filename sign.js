@@ -3,6 +3,7 @@
 const path = require('path')
 const fsProm = require('fs/promises')
 const os = require('os')
+const readline = require('readline')
 const request = require('hypercore-signing-request')
 const z32 = require('z32')
 const c = require('compact-encoding')
@@ -42,9 +43,22 @@ async function main () {
     throw new Error('Request version not supported, please update')
   }
 
-  console.log('Signing request:\n')
-  console.log(req)
+  console.log('\nRequest data:')
+  console.log({
+    core: req.id,
+    fork: req.fork,
+    length: req.length,
+    treeHash: req.treeHash.toString('hex')
+  })
   console.log()
+
+  if (!(await userConfirm())) {
+    console.log('\nRequest rejected.')
+    process.exit(1)
+  }
+
+  console.log('\nRequest data is confirmed')
+  console.log('Proceeding with signing...')
 
   const requestHash = hash(z32.decode(signingRequest))
 
@@ -53,6 +67,7 @@ async function main () {
 
   const signable = request.signable(publicKey, req)
 
+  console.log('\nUnlocking key pair...\n')
   const password = await readPassword()
   const signature = sign(signable, secretKey, password)
 
@@ -68,3 +83,39 @@ async function main () {
 }
 
 main()
+
+async function userConfirm (prompt = 'Confirm? [y/N]') {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  })
+
+  while (true) {
+    const answer = await new Promise(resolve => {
+      rl.question(prompt, line => {
+        if (!line.length) return resolve(false)
+
+        const key = line[0].toLowerCase()
+
+        switch (key) {
+          case 'y':
+            resolve(true)
+            break
+
+          case 'n':
+            resolve(false)
+            break
+
+          default:
+            prompt = '\nAnswer with y[es] or n[o]: '
+            resolve(null)
+        }
+      })
+    })
+
+    if (answer === null) continue
+
+    rl.close()
+    return answer
+  }
+}

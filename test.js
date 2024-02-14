@@ -69,7 +69,7 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
   let publicKey = null
   try {
     genKeysProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString()
+      const data = bufferData.toString().toLowerCase()
 
       if (DEBUG_LOG) console.log('[generate-keys]', data.toString())
 
@@ -77,9 +77,9 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
         // Enter the password
         genKeysProcess.stdin.write(DUMMY_PASSWORD)
       }
-      if (data.includes('Public key is')) {
+      if (data.includes('public key is')) {
         tCreateKeys.pass('Key creation done')
-        publicKey = data.split('Public key is ')[1].trim()
+        publicKey = data.split('public key is ')[1].trim()
       }
     })
 
@@ -118,16 +118,21 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
   let response = null
   try {
     signProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString()
+      const data = bufferData.toString().toLowerCase()
       if (DEBUG_LOG) console.log('[sign]', data)
 
-      if (data.includes('password:')) {
+      if (data.includes('confirm?')) {
+        // Enter the password
+        signProcess.stdin.write('y\n')
+      }
+
+      if (data.includes('password')) {
         // Enter the password
         signProcess.stdin.write(DUMMY_PASSWORD)
       }
 
-      if (data.includes('Reply with:')) {
-        response = data.split('Reply with:')[1].trim()
+      if (data.includes('reply with:')) {
+        response = data.split('reply with:')[1].trim()
         tSign.pass('Successfully signed the message')
       }
     })
