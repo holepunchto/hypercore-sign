@@ -11,7 +11,7 @@ const homeDir = os.homedir()
 // fs permissions
 const USER_ONLY_R = 0o400
 const USER_ONLY_RW = 0o600
-const USER_ONLY_RWX = 0o600
+const USER_ONLY_RWX = 0o700
 
 const { readPassword, generateKeys, confirmPassword } = require('./lib/secure')
 
@@ -41,18 +41,17 @@ async function main () {
 
   const { secretKey, publicKey } = generateKeys(password)
 
+  // Prompt a confirmation when overwriting
+  // (Because you probably don't want to overwrite these,
+  // once they have been generated)
+
   await fsProm.writeFile(secretKeyPath, z32.encode(secretKey), {
-    mode: USER_ONLY_RW
+    mode: USER_ONLY_R
   })
 
   await fsProm.writeFile(publicKeyPath, z32.encode(publicKey), {
     mode: USER_ONLY_RW
   })
-
-  // Prompt a confirmation when overwriting
-  // (Because you probably don't want to overwrite these,
-  // once they have been generated)
-  await fsProm.chmod(secretKeyPath, USER_ONLY_R)
 
   console.log(`\nSecret key written to ${secretKeyPath}`)
   console.log(`Public key written to ${publicKeyPath}`)
