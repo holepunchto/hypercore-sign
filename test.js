@@ -184,12 +184,12 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
     await tVerify
 
     // verify against actual core
-    const { signature } = c.decode(Response, z32.decode(response))
-    t.ok(verify(signature))
+    const { signatures } = c.decode(Response, z32.decode(response))
+    t.ok(verify(signatures[0]))
 
     // sanity check
-    signature.fill(0)
-    t.absent(verify(signature))
+    signatures[0].fill(0)
+    t.absent(verify(signatures[0]))
   } finally {
     // To ensure the process is always killed
     verifyProcess.kill('SIGKILL')

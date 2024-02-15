@@ -65,17 +65,17 @@ async function main () {
   const secretKey = z32.decode(await fsProm.readFile(secretKeyPath, 'utf-8'))
   const publicKey = z32.decode(await fsProm.readFile(publicKeyPath, 'utf-8'))
 
-  const signable = request.signable(publicKey, req)
+  const signables = request.signable(publicKey, req)
 
   console.log('\nUnlocking key pair...\n')
   const password = await readPassword()
-  const signature = sign(signable, secretKey, password)
+  const signatures = sign(signables, secretKey, password)
 
   const response = c.encode(Response, {
     version: req.version,
     requestHash,
     publicKey,
-    signature
+    signatures
   })
 
   console.log(`\nSigned with public key:\n\n${z32.encode(publicKey)}`)
