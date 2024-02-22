@@ -8,23 +8,30 @@ const z32 = require('z32')
 
 const homeDir = os.homedir()
 
+// fs permissions
+const USER_ONLY_R = 0o400
+const USER_ONLY_RW = 0o600
+const USER_ONLY_RWX = 0o700
+
 const { readPassword, generateKeys, confirmPassword } = require('./lib/secure')
 
 async function main () {
   const dir = process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')
 
-  await fsProm.mkdir(dir, { mode: 0o700, recursive: true })
-  const secretKeyLoc = path.join(dir, 'default')
-  const publicKeyLoc = path.join(dir, 'default.public')
+  await fsProm.mkdir(dir, { mode: USER_ONLY_RWX, recursive: true })
+  const secretKeyPath = path.join(dir, 'default')
+  const publicKeyPath = path.join(dir, 'default.public')
 
-  if (fs.existsSync(secretKeyLoc)) {
-    console.log(`Secret key already written to ${secretKeyLoc}`)
-    console.log(`Public key already written to ${publicKeyLoc}`)
+  if (fs.existsSync(secretKeyPath)) {
+    console.log(`Secret key already written to ${secretKeyPath}`)
+    console.log(`Public key already written to ${publicKeyPath}`)
     console.log()
-    console.log('Public key is', fs.readFileSync(publicKeyLoc, 'utf8'))
+    console.log('Public key is', fs.readFileSync(publicKeyPath, 'utf8'))
     return
   }
 
+  console.log('Your secret key will be encrypted with a password.')
+  console.log('Please choose one now:\n')
   const password = await readPassword()
 
   if (!(await confirmPassword(password))) {
@@ -34,25 +41,20 @@ async function main () {
 
   const { secretKey, publicKey } = generateKeys(password)
 
-  await fsProm.writeFile(
-    secretKeyLoc,
-    z32.encode(secretKey),
-    { mode: 0o600 }
-  )
-
-  await fsProm.writeFile(
-    publicKeyLoc,
-    z32.encode(publicKey),
-    { mode: 0o600 }
-  )
-
   // Prompt a confirmation when overwriting
   // (Because you probably don't want to overwrite these,
   // once they have been generated)
-  await fsProm.chmod(secretKeyLoc, 0o400)
 
-  console.log(`Secret key written to ${secretKeyLoc}`)
-  console.log(`Public key written to ${publicKeyLoc}`)
+  await fsProm.writeFile(secretKeyPath, z32.encode(secretKey), {
+    mode: USER_ONLY_R
+  })
+
+  await fsProm.writeFile(publicKeyPath, z32.encode(publicKey), {
+    mode: USER_ONLY_RW
+  })
+
+  console.log(`\nSecret key written to ${secretKeyPath}`)
+  console.log(`Public key written to ${publicKeyPath}`)
   console.log()
   console.log('Public key is', z32.encode(publicKey))
 }

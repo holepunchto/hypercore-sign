@@ -8,6 +8,9 @@ const { spawn } = require('child_process')
 const tmp = require('test-tmp')
 const b4a = require('b4a')
 const z32 = require('z32')
+const c = require('compact-encoding')
+
+const { Response } = require('./lib/messages')
 
 const DEBUG_LOG = false
 const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
@@ -66,17 +69,17 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
   let publicKey = null
   try {
     genKeysProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString()
+      const data = bufferData.toString().toLowerCase()
 
       if (DEBUG_LOG) console.log('[generate-keys]', data.toString())
 
-      if (data.includes('password')) {
+      if (data.includes('password:')) {
         // Enter the password
         genKeysProcess.stdin.write(DUMMY_PASSWORD)
       }
-      if (data.includes('Public key is')) {
+      if (data.includes('public key is')) {
         tCreateKeys.pass('Key creation done')
-        publicKey = data.split('Public key is ')[1].trim()
+        publicKey = data.split('public key is ')[1].trim()
       }
     })
 
@@ -112,19 +115,24 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
     tSign.is(code, 0, '0 status code for message signing process')
   })
 
-  let verifyParams = null
+  let response = null
   try {
     signProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString()
+      const data = bufferData.toString().toLowerCase()
       if (DEBUG_LOG) console.log('[sign]', data)
 
-      if (data.includes('password:')) {
+      if (data.includes('confirm?')) {
+        // Enter the password
+        signProcess.stdin.write('y\n')
+      }
+
+      if (data.includes('password')) {
         // Enter the password
         signProcess.stdin.write(DUMMY_PASSWORD)
       }
 
-      if (data.includes('hypercore-verify')) {
-        verifyParams = data.split('hypercore-verify ')[1].trim().split(' ')
+      if (data.includes('reply with:')) {
+        response = data.split('reply with:')[1].trim()
         tSign.pass('Successfully signed the message')
       }
     })
@@ -144,18 +152,27 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
   tVerify.plan(2)
 
   const verifyProcess = spawn(
-    'node', ['verify.js', ...verifyParams], { env }
+    'node', ['verify.js', response, request, publicKey], { env }
   )
   verifyProcess.on('close', (code) => {
     tVerify.is(code, 0, '0 status code for verify process')
   })
 
   try {
+    let data = ''
     verifyProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString()
+      data += bufferData.toString()
+    })
+
+    verifyProcess.stderr.on('data', (data) => {
+      console.error(data.toString())
+      t.fail('verify errored')
+    })
+
+    verifyProcess.stdout.on('close', () => {
       if (DEBUG_LOG) console.log('[verify]', data)
 
-      if (data.includes('Signed by public key')) {
+      if (data.includes('Signature verified.')) {
         if (data.includes(publicKey)) {
           tVerify.pass('Verified that the message got signed by the correct public key')
         } else {
@@ -164,15 +181,10 @@ test('Basic flow: create keys, sign a core and verify it', async t => {
       }
     })
 
-    verifyProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('verify errored')
-    })
-
     await tVerify
 
     // verify against actual core
-    const signature = z32.decode(verifyParams[0])
+    const { signature } = c.decode(Response, z32.decode(response))
     t.ok(verify(signature))
 
     // sanity check
