@@ -3,62 +3,120 @@
 const path = require('path')
 const fsProm = require('fs/promises')
 const os = require('os')
+const readline = require('readline')
 const request = require('hypercore-signing-request')
 const z32 = require('z32')
+const c = require('compact-encoding')
+
 const { version } = require('./package.json')
+const { readPassword, sign, hash } = require('./lib/secure')
+const { Response } = require('./lib/messages')
+const { MAX_SUPPORTED_VERSION } = require('./lib/constants')
 
 const homeDir = os.homedir()
-const { readPassword, sign } = require('./lib/secure')
 
 async function main () {
-  const z32SigningRequest = process.argv[2]
-  if (!z32SigningRequest) {
+  const signingRequest = process.argv[2]
+  if (!signingRequest) {
     console.log(`hypercore-sign ${version}\n`)
     console.log('Sign a hypercore signing request.')
     console.log('\nUsage:')
-    console.log('hypercore-sign <z32SigningRequest>')
+    console.log('hypercore-sign <signingRequest>')
     process.exit(1)
   }
 
   const keysDir = process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')
-  const secretKeyLoc = path.join(
-    keysDir, 'default'
-  )
-  const publicKeyLoc = path.join(
-    keysDir, 'default.public'
-  )
 
-  const signingRequest = z32.decode(z32SigningRequest)
-  let decodedRequest = null
+  const secretKeyPath = path.join(keysDir, 'default')
+  const publicKeyPath = path.join(keysDir, 'default.public')
+
+  let req = null
   try {
-    decodedRequest = request.decode(signingRequest)
-    console.log('Signing request:\n')
-    console.log(decodedRequest)
-    console.log()
+    req = request.decode(z32.decode(signingRequest))
   } catch (e) {
     console.log(e)
     console.error('\nCould not decode the signing request. Invalid signing request?')
     process.exit(1)
   }
 
-  const secretKey = z32.decode(
-    await fsProm.readFile(secretKeyLoc, 'utf-8')
-  )
-  const publicKey = z32.decode(
-    await fsProm.readFile(publicKeyLoc, 'utf-8')
-  )
-  const z32PubKey = z32.encode(publicKey)
-  const signable = request.signable(publicKey, decodedRequest)
+  if (req.version > MAX_SUPPORTED_VERSION) {
+    throw new Error('Request version not supported, please update')
+  }
 
+  console.log('\nRequest data:')
+  console.log({
+    core: req.id,
+    fork: req.fork,
+    length: req.length,
+    treeHash: req.treeHash.toString('hex')
+  })
+  console.log()
+
+  if (!(await userConfirm())) {
+    console.log('\nRequest rejected.')
+    process.exit(1)
+  }
+
+  console.log('\nRequest data is confirmed')
+  console.log('Proceeding with signing...')
+
+  const requestHash = hash(z32.decode(signingRequest))
+
+  const secretKey = z32.decode(await fsProm.readFile(secretKeyPath, 'utf-8'))
+  const publicKey = z32.decode(await fsProm.readFile(publicKeyPath, 'utf-8'))
+
+  const signable = request.signable(publicKey, req)
+
+  console.log('\nUnlocking key pair...\n')
   const password = await readPassword()
   const signature = sign(signable, secretKey, password)
 
-  const z32signature = z32.encode(signature)
-  console.log(`\nSignature:\n\n${z32signature}`)
+  const response = c.encode(Response, {
+    version: req.version,
+    requestHash,
+    publicKey,
+    signature
+  })
 
-  console.log(`\nVerifiable with pub key:\n\n${z32PubKey}`)
-  console.log('\nFull command to verify:\n')
-  console.log(`hypercore-verify ${z32signature} ${z32SigningRequest} ${z32PubKey}`)
+  console.log(`\nSigned with public key:\n\n${z32.encode(publicKey)}`)
+
+  console.log(`\nReply with:\n\n${z32.encode(response)}`)
 }
 
 main()
+
+async function userConfirm (prompt = 'Confirm? [y/N]') {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  })
+
+  while (true) {
+    const answer = await new Promise(resolve => {
+      rl.question(prompt, line => {
+        if (!line.length) return resolve(false)
+
+        const key = line[0].toLowerCase()
+
+        switch (key) {
+          case 'y':
+            resolve(true)
+            break
+
+          case 'n':
+            resolve(false)
+            break
+
+          default:
+            prompt = '\nAnswer with y[es] or n[o]: '
+            resolve(null)
+        }
+      })
+    })
+
+    if (answer === null) continue
+
+    rl.close()
+    return answer
+  }
+}
