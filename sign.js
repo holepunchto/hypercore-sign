@@ -43,13 +43,13 @@ async function main () {
     throw new Error('Request version not supported, please update')
   }
 
-  console.log('\nRequest data:')
-  console.log({
-    core: req.id,
-    fork: req.fork,
-    length: req.length,
-    treeHash: req.treeHash.toString('hex')
-  })
+  if (req.blobs === null) {
+    console.log('Hypercore signing request:')
+    console.log(printHypercoreRequest(req))
+  } else {
+    console.log('Hyperdrive signing request:')
+    console.log(printHyperdriveRequest(req))
+  }
   console.log()
 
   if (!(await userConfirm())) {
@@ -118,5 +118,29 @@ async function userConfirm (prompt = 'Confirm? [y/N]') {
 
     rl.close()
     return answer
+  }
+}
+
+function printHypercoreRequest (req) {
+  return {
+    core: req.id,
+    fork: req.fork,
+    length: req.length,
+    treeHash: req.treeHash.toString('hex')
+  }
+}
+
+function printHyperdriveRequest (req) {
+  return {
+    key: req.id,
+    fork: req.fork,
+    metadata: {
+      length: req.length,
+      treeHash: req.treeHash.toString('hex')
+    },
+    blobs: {
+      length: req.blobs.length,
+      treeHash: req.blobs.treeHash.toString('hex')
+    }
   }
 }
