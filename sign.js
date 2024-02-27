@@ -44,21 +44,21 @@ async function main () {
   }
 
   if (req.isHyperdrive) {
-    console.log('Hyperdrive signing request:')
-    console.log(printHyperdriveRequest(req))
+    console.log(box('Hyperdrive signing request'))
+    console.log(formatHyperdriveRequest(req))
   } else {
-    console.log('Hypercore signing request:')
-    console.log(printHypercoreRequest(req))
+    console.log(box('Hypercore signing request'))
+    console.log(formatHypercoreRequest(req))
   }
   console.log()
 
   if (!(await userConfirm())) {
-    console.log('\nRequest rejected.')
+    console.log('\nRequest aborted.')
     process.exit(1)
   }
 
   console.log('\nRequest data is confirmed')
-  console.log('Proceeding with signing...')
+  console.log('Proceeding to sign...')
 
   const requestHash = hash(z32.decode(signingRequest))
 
@@ -67,7 +67,16 @@ async function main () {
 
   const signables = request.signable(publicKey, req)
 
-  console.log('\nUnlocking key pair...\n')
+  console.log(`\nSigning with ${secretKeyPath}\n`)
+  if (!(await userConfirm())) {
+    console.log('\nRequest aborted.')
+    process.exit(1)
+  }
+  console.log()
+
+  // wait a tick before passing on stdin
+  await new Promise(setImmediate)
+
   const password = await readPassword()
   const signatures = sign(signables, secretKey, password)
 
@@ -85,7 +94,7 @@ async function main () {
 
 main()
 
-async function userConfirm (prompt = 'Confirm? [y/N]') {
+async function userConfirm (prompt = 'Confirm? [y/N] ') {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -121,7 +130,7 @@ async function userConfirm (prompt = 'Confirm? [y/N]') {
   }
 }
 
-function printHypercoreRequest (req) {
+function formatHypercoreRequest (req) {
   return {
     core: req.id,
     fork: req.fork,
@@ -130,7 +139,7 @@ function printHypercoreRequest (req) {
   }
 }
 
-function printHyperdriveRequest (req) {
+function formatHyperdriveRequest (req) {
   return {
     key: req.id,
     fork: req.fork,
@@ -143,4 +152,12 @@ function printHyperdriveRequest (req) {
       treeHash: req.content.treeHash.toString('hex')
     }
   }
+}
+
+function box (text) {
+  const mid = '\u2502 ' + text + ' \u2502'
+  const top = '\u250c'.padEnd(mid.length - 1, '\u2500') + '\u2510'
+  const btm = '\u2514'.padEnd(mid.length - 1, '\u2500') + '\u2518'
+
+  return [top, mid, btm].join('\n')
 }
