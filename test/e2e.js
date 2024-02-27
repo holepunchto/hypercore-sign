@@ -12,7 +12,7 @@ const b4a = require('b4a')
 const z32 = require('z32')
 const c = require('compact-encoding')
 
-const { Response } = require('./lib/messages')
+const { Response } = require('../lib/messages')
 
 const DEBUG_LOG = false
 const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
