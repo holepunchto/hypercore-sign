@@ -382,3 +382,140 @@ test('e2e - sign a drive', async t => {
     verifyProcess.kill('SIGKILL')
   }
 })
+
+test('e2e - v1 fixture', async t => {
+  t.plan(3)
+
+  const request = await fsProm.readFile(path.join(__dirname, 'fixtures', 'requests', 'v1.request'), 'utf8')
+  const env = { ...process.env, HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(__dirname, 'fixtures', 'keys') }
+
+  const proc = spawn('node', ['sign.js', request], { env })
+
+  t.teardown(() => proc.kill('SIGKILL'))
+
+  proc.on('close', (code) => {
+    t.is(code, 0, '0 status code for message signing process')
+  })
+
+  proc.stdout.on('data', (bufferData) => {
+    const data = bufferData.toString().toLowerCase()
+    if (DEBUG_LOG) console.log('[sign]', data)
+
+    if (data.includes('confirm?')) {
+      // Enter the password
+      proc.stdin.write('y\n')
+    }
+
+    if (data.includes('password')) {
+      // Enter the password
+      proc.stdin.write('password')
+    }
+
+    if (data.includes('reply with:')) {
+      t.pass('Successfully signed the message')
+    }
+
+    if (data.includes('hypercore signing request')) {
+      t.pass()
+    } else if (data.includes('hyperdrive signing request')) {
+      t.fail()
+    }
+  })
+
+  proc.stderr.on('data', (data) => {
+    console.error(data.toString())
+    t.fail('sign errored')
+  })
+})
+
+test('e2e - v2 fixture', async t => {
+  t.plan(3)
+
+  const request = await fsProm.readFile(path.join(__dirname, 'fixtures', 'requests', 'v2.request'), 'utf8')
+  const env = { ...process.env, HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(__dirname, 'fixtures', 'keys')}
+
+  const proc = spawn('node', ['sign.js', request], { env })
+
+  t.teardown(() => proc.kill('SIGKILL'))
+
+  proc.on('close', (code) => {
+    t.is(code, 0, '0 status code for message signing process')
+  })
+
+  proc.stdout.on('data', (bufferData) => {
+    const data = bufferData.toString().toLowerCase()
+    if (DEBUG_LOG) console.log('[sign]', data)
+
+    if (data.includes('confirm?')) {
+      // Enter the password
+      proc.stdin.write('y\n')
+    }
+
+    if (data.includes('password')) {
+      // Enter the password
+      proc.stdin.write('password')
+    }
+
+    if (data.includes('reply with:')) {
+      t.pass('Successfully signed the message')
+    }
+
+    if (data.includes('hypercore signing request')) {
+      t.pass()
+    } else if (data.includes('hyperdrive signing request')) {
+      t.fail()
+    }
+  })
+
+  proc.stderr.on('data', (data) => {
+    console.error(data.toString())
+    t.fail('sign errored')
+  })
+})
+
+test('e2e - v2 drive fixture', async t => {
+  t.plan(3)
+
+  const request = await fsProm.readFile(path.join(__dirname, 'fixtures', 'requests', 'v2-drive.request'), 'utf8')
+  const env = { ...process.env, HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(__dirname, 'fixtures', 'keys') }
+
+  t.plan(3)
+
+  const proc = spawn('node', ['sign.js', request], { env })
+
+  t.teardown(() => proc.kill('SIGKILL'))
+
+  proc.on('close', (code) => {
+    t.is(code, 0, '0 status code for message signing process')
+  })
+
+  proc.stdout.on('data', (bufferData) => {
+    const data = bufferData.toString().toLowerCase()
+    if (DEBUG_LOG) console.log('[sign]', data)
+
+    if (data.includes('confirm?')) {
+      // Enter the password
+      proc.stdin.write('y\n')
+    }
+
+    if (data.includes('password')) {
+      // Enter the password
+      proc.stdin.write('password')
+    }
+
+    if (data.includes('reply with:')) {
+      t.pass('Successfully signed the message')
+    }
+
+    if (data.includes('hyperdrive signing request')) {
+      t.pass()
+    } else if (data.includes('hypercore signing request')) {
+      t.fail()
+    }
+  })
+
+  proc.stderr.on('data', (data) => {
+    console.error(data.toString())
+    t.fail('sign errored')
+  })
+})
