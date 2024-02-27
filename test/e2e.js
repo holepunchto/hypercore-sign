@@ -432,7 +432,7 @@ test('e2e - v2 fixture', async t => {
   t.plan(3)
 
   const request = await fsProm.readFile(path.join(__dirname, 'fixtures', 'requests', 'v2.request'), 'utf8')
-  const env = { ...process.env, HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(__dirname, 'fixtures', 'keys')}
+  const env = { ...process.env, HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(__dirname, 'fixtures', 'keys') }
 
   const proc = spawn('node', ['sign.js', request], { env })
 
