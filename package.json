@@ -30,7 +30,9 @@
   },
   "devDependencies": {
     "brittle": "^3.4.0",
+    "corestore": "^6.17.0",
     "hypercore": "^10.32.8",
+    "hyperdrive": "^11.7.0",
     "random-access-memory": "^6.2.0",
     "standard": "^17.1.0",
     "test-tmp": "^1.1.1"
