@@ -43,12 +43,12 @@ async function main () {
     throw new Error('Request version not supported, please update')
   }
 
-  if (req.blobs === null) {
-    console.log('Hypercore signing request:')
-    console.log(printHypercoreRequest(req))
-  } else {
+  if (req.isHyperdrive) {
     console.log('Hyperdrive signing request:')
     console.log(printHyperdriveRequest(req))
+  } else {
+    console.log('Hypercore signing request:')
+    console.log(printHypercoreRequest(req))
   }
   console.log()
 
@@ -138,9 +138,9 @@ function printHyperdriveRequest (req) {
       length: req.length,
       treeHash: req.treeHash.toString('hex')
     },
-    blobs: {
-      length: req.blobs.length,
-      treeHash: req.blobs.treeHash.toString('hex')
+    content: {
+      length: req.content.length,
+      treeHash: req.content.treeHash.toString('hex')
     }
   }
 }
