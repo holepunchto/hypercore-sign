@@ -63,8 +63,8 @@ hypercore-verify yebyby5xzupiuamzhtcqrq4s3sh3msxjgdsdaf96saw7zb9amriic3asyryyyye
 Generate new key pairs.
 
 ```
-generate                        key pair saved at ~/.hypercore-sign/default
-generate /keys/directory        key pair saved to dir
+hyeprcore-sign generate                    key pair saved at ~/.hypercore-sign/default
+hyeprcore-sign generate /keys/directory    key pair saved to dir
 ```
 
 By default `storage-dir` is set to `~/.hypercore-sign`.
@@ -81,6 +81,21 @@ hypercore-sign generate [key_dir]
 # you will be prompted to name the key and provide a password
 > key
 > Key-pair password:...
+```
+
+### `hypercore-sign add`
+
+Add known public keys.
+
+```
+add <key> <name>              key pair saved at ~/.hypercore-sign/known-peers
+add <key> <name> -d <dir>     key pair saved to dir/known-peers
+```
+
+These will be used to verify requests if no pubkey is provided:
+
+```
+hypercore-sign verify <res> <req> -d <dir>    verify against all keys in dir/known-peers
 ```
 
 ## License

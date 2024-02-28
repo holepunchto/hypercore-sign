@@ -11,7 +11,7 @@ test('generate - basic', async t => {
 
   const keysDir = await tmp(t)
 
-  const g = spawn('node', ['./bin/cli.js', 'generate', keysDir])
+  const g = spawn('node', ['./bin/cli.js', 'generate', '-d', keysDir])
 
   t.teardown(() => g.kill('SIGKILL'))
 
@@ -35,7 +35,7 @@ test('generate - keys already exist', async t => {
   const keysDir = path.resolve(__dirname, 'fixtures', 'keys')
   const exp = await fs.readFile(path.join(keysDir, 'default.public'), 'utf-8')
 
-  const g = spawn('node', ['./bin/cli.js', 'generate', keysDir])
+  const g = spawn('node', ['./bin/cli.js', 'generate', '-d', keysDir])
 
   let message = ''
 
@@ -59,7 +59,7 @@ test('generate - named key', async t => {
 
   const keysDir = await tmp(t)
 
-  const g = spawn('node', ['./bin/cli.js', 'generate', keysDir])
+  const g = spawn('node', ['./bin/cli.js', 'generate', '-d', keysDir])
 
   t.teardown(() => g.kill('SIGKILL'))
 
@@ -82,7 +82,7 @@ test('generate - password too short', async t => {
 
   const keysDir = await tmp(t)
 
-  const g = spawn('node', ['./bin/cli.js', 'generate', keysDir])
+  const g = spawn('node', ['./bin/cli.js', 'generate', '-d', keysDir])
 
   t.teardown(() => g.kill('SIGKILL'))
 
@@ -97,7 +97,7 @@ test('generate - passwords do not match', async t => {
 
   const keysDir = await tmp(t)
 
-  const g = spawn('node', ['./bin/cli.js', 'generate', keysDir])
+  const g = spawn('node', ['./bin/cli.js', 'generate', '-d', keysDir])
 
   t.teardown(() => g.kill('SIGKILL'))
 
@@ -112,7 +112,7 @@ test('generate - generate with just public key defined', async t => {
 
   const keysDir = await tmp(t)
 
-  const g = spawn('node', ['./bin/cli.js', 'generate', keysDir])
+  const g = spawn('node', ['./bin/cli.js', 'generate', '-d', keysDir])
 
   t.teardown(() => g.kill('SIGKILL'))
 
@@ -127,7 +127,7 @@ test('generate - key with dots', async t => {
 
   const keysDir = await tmp(t)
 
-  const g = spawn('node', ['./bin/cli.js', 'generate', keysDir])
+  const g = spawn('node', ['./bin/cli.js', 'generate', '-d', keysDir])
 
   t.teardown(() => g.kill('SIGKILL'))
 
@@ -152,7 +152,7 @@ test('generate - help', async t => {
 
   let message = ''
 
-  const g = spawn('node', ['./bin/cli.js', 'generate', keysDir, '-h'])
+  const g = spawn('node', ['./bin/cli.js', 'generate', '-d', keysDir, '-h'])
 
   g.stdout.on('data', data => {
     message += data.toString()

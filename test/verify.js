@@ -17,7 +17,7 @@ test('verify - basic', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 0, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 0, 'Successfully verified response') })
 
   await t.execution(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
@@ -46,7 +46,7 @@ test('verify - drive', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 0, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 0, 'Successfully verified response') })
 
   await t.execution(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
@@ -73,7 +73,7 @@ test('verify - specify key file', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 0, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 0, 'Successfully verified response') })
 
   await t.execution(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
@@ -100,7 +100,7 @@ test('verify - specify key file no extension', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 0, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 0, 'Successfully verified response') })
 
   await t.execution(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
@@ -127,7 +127,7 @@ test('verify - alternate key file', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 0, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 0, 'Successfully verified response') })
 
   await t.execution(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
@@ -154,7 +154,7 @@ test('verify - wrong key file', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 1, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 1, 'Successfully rejected response') })
 
   await t.exception(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
@@ -181,7 +181,7 @@ test('verify - wrong response', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 1, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 1, 'Successfully rejected response') })
 
   await t.exception(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
@@ -208,7 +208,7 @@ test('verify - bad request', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 1, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 1, 'Successfully rejected response') })
 
   await t.exception(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
@@ -235,7 +235,7 @@ test('verify - bad response', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 1, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 1, 'Successfully rejected response') })
 
   await t.exception(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
@@ -264,7 +264,7 @@ test('verify - bad public key', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 1, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 1, 'Successfully rejected response') })
 
   await t.exception(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
@@ -289,7 +289,88 @@ test('verify - no public key', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 1, 'Successfully signed request') })
+  v.on('close', (code) => { t.is(code, 1, 'Successfully rejected response') })
+
+  await t.exception(new Promise((resolve, reject) => {
+    v.stdout.on('data', data => {
+      if (data.toString().includes('Signature verified.')) {
+        resolve()
+      }
+    })
+
+    v.stderr.on('data', (data) => {
+      reject(new Error('verification failed'))
+    })
+  }))
+})
+
+test('verify - no public key at location', async t => {
+  t.plan(2)
+
+  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'none.public')
+
+  const request = await fs.readFile(path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core'))
+  const response = await fs.readFile(path.resolve(__dirname, 'fixtures', 'responses', 'default.v2.core'))
+
+  const v = spawn('node', ['./bin/cli.js', 'verify', response, request, '-i', keyFile])
+
+  t.teardown(() => v.kill('SIGKILL'))
+
+  v.on('close', (code) => { t.is(code, 1, 'Successfully rejected response') })
+
+  await t.exception(new Promise((resolve, reject) => {
+    v.stdout.on('data', data => {
+      if (data.toString().includes('Signature verified.')) {
+        resolve()
+      }
+    })
+
+    v.stderr.on('data', (data) => {
+      reject(new Error('verification failed'))
+    })
+  }))
+})
+
+test('verify - storage dir', async t => {
+  t.plan(2)
+
+  const storageDir = path.resolve(__dirname, 'fixtures', 'storage') // alternate is trusted
+
+  const request = await fs.readFile(path.resolve(__dirname, 'fixtures', 'requests', 'alternate.v2.core'))
+  const response = await fs.readFile(path.resolve(__dirname, 'fixtures', 'responses', 'alternate.v2.core'))
+
+  const v = spawn('node', ['./bin/cli.js', 'verify', response, request, '-d', storageDir])
+
+  t.teardown(() => v.kill('SIGKILL'))
+
+  v.on('close', (code) => { t.is(code, 0, 'Successfully verified response') })
+
+  await t.execution(new Promise((resolve, reject) => {
+    v.stdout.on('data', data => {
+      if (data.toString().includes('Signature verified.')) {
+        resolve()
+      }
+    })
+
+    v.stderr.on('data', (data) => {
+      reject(new Error('verification failed'))
+    })
+  }))
+})
+
+test('verify - storage dir, no corresponding key', async t => {
+  t.plan(2)
+
+  const storageDir = path.resolve(__dirname, 'fixtures', 'storage') // alternate is trusted
+
+  const request = await fs.readFile(path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core'))
+  const response = await fs.readFile(path.resolve(__dirname, 'fixtures', 'responses', 'default.v2.core'))
+
+  const v = spawn('node', ['./bin/cli.js', 'verify', response, request, '-d', storageDir])
+
+  t.teardown(() => v.kill('SIGKILL'))
+
+  v.on('close', (code) => { t.is(code, 1, 'Successfully verified response') })
 
   await t.exception(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {

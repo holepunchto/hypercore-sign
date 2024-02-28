@@ -35,6 +35,21 @@ test('sign - base command', async t => {
   await t.execution(dummySigner(s))
 })
 
+test('sign - with directory', async t => {
+  t.plan(2)
+
+  const storageDir = path.resolve(__dirname, 'fixtures', 'storage')
+  const request = await fs.readFile(path.resolve(__dirname, 'fixtures', 'requests', 'default.v1.core'), 'utf8')
+
+  const s = spawn('node', ['./bin/cli.js', request, '-d', storageDir])
+
+  t.teardown(() => s.kill('SIGKILL'))
+
+  s.on('close', (code) => { t.is(code, 0, 'Successfully signed request') })
+
+  await t.execution(dummySigner(s))
+})
+
 test('sign - drive request', async t => {
   t.plan(2)
 

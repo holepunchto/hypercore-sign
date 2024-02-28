@@ -6,15 +6,16 @@ const minimist = require('minimist')
 
 const { version } = require('../package.json')
 
-const { signer, verifier, generator } = require('../')
+const { signer, verifier, generator, add } = require('../')
 const { box, underline } = require('../lib/utils')
 
 const argv = minimist(process.argv.slice(2), {
   alias: {
     help: 'h',
-    id: 'i'
+    id: 'i',
+    'storage-dir': 'd'
   },
-  string: ['id'],
+  string: ['id', 'storage-dir'],
   boolean: ['help']
 })
 
@@ -24,24 +25,30 @@ Utility for signing and verifying hypercore requests
 
 ${underline('commands')}
 
-hypercore-sign             (default command is sign)
+hypercore-sign [-h|--help] [-i|--id] [-d|--storage-dir] command
 
-hypercore-sign sign             sign requests
+hypercore-sign sign             sign requests (default)
 hypercore-sign verify           verify responses
 hypercore-sign generate         generate new key pairs
+hypercore-sign add              add trusted keys
 
 ${underline('usage')}
 
 sign <request>                  use default key: ~/.hypercore-sign/default
 sign <request> -i name          searches for key in ~/.hypercore-sign
 sign <request> -i /path/to/key  path to key file (relative or absolute)
+sign <request> -d ./storage     path to storage (relative or absolute)
 
 verify <res> <req> <pubkey>     verify against a pubkey
-verify <res> <req> -i key       verify against a keyfile 
-verify <res> <req>              verify against all known keys
+verify <res> <req> -i key       verify against a keyfile
+verify <res> <req> -d dir       verify against all keys in dir/known-peers
 
 generate                        key pair saved at ~/.hypercore-sign/default
-generate /keys/directory        key pair saved to dir
+generate -d ./storage           key pair saved to ./storage
+
+add <pubkey>                    key pair saved to ~/.hypercore-sign/known-peers
+add <pubkey> -d <dir>           key pair saved to dir
+add <pubkey> -d <dir> <name>    key pair saved as dir/name.public
 `
 
 if (argv.help || argv.h) {
@@ -49,28 +56,49 @@ if (argv.help || argv.h) {
 }
 
 const homeDir = os.homedir()
+let dir = path.join(homeDir, '.hypercore-sign')
+
+if (argv.d) {
+  dir = path.resolve(argv.d)
+}
 
 const keyPath = {
-  dir: path.join(homeDir, '.hypercore-sign'),
+  dir,
   name: 'default'
 }
 
 if (argv.i) {
-  console.log(argv.i)
   parseKeyPath(argv.i, keyPath)
+}
+
+if (argv.d && keyPath.dir !== path.resolve(argv.d)) {
+  throw new Error('Specified id is not within provided storage directory')
 }
 
 let [command, ...args] = argv._
 
 switch (command) {
+  case 'add': {
+    const [publicKey, name] = args
+    if (!publicKey) printHelp()
+    else add(publicKey, path.join(keyPath.dir, 'known-peers'), name)
+    break
+  }
+
   case 'generate':
-    generator(args[0] || keyPath.dir)
+    generator(keyPath.dir)
     break
 
   case 'verify': {
     const [response, request, publicKey] = args
-    if (!publicKey && !argv.i) {
+    if (!publicKey && !argv.i && !argv.d) {
       printHelp('No public key to verify against')
+    }
+
+    if (argv.d) {
+      keyPath.name = ''
+    } else {
+      keyPath.ext = '.public'
     }
 
     verifier(response, request, publicKey || keyPath)
