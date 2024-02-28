@@ -1,395 +1,182 @@
 const fsProm = require('fs/promises')
 const path = require('path')
 const test = require('brittle')
-const Hypercore = require('hypercore')
-const Hyperdrive = require('hyperdrive')
-const Corestore = require('corestore')
-const RAM = require('random-access-memory')
-const { generate } = require('hypercore-signing-request')
 const { spawn } = require('child_process')
 const tmp = require('test-tmp')
-const b4a = require('b4a')
 const z32 = require('z32')
 const c = require('compact-encoding')
 
 const { Response } = require('../lib/messages')
+const {
+  dummyUser,
+  dummySigner,
+  getSigningRequest,
+  getDriveSigningRequest
+} = require('./helpers')
 
-const DEBUG_LOG = false
 const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
-
-async function getSigningRequest (z32publicKey, t) {
-  const namespace = b4a.alloc(32, 1)
-  const publicKey = z32.decode(z32publicKey)
-
-  const core = new Hypercore(RAM.reusable(), {
-    compat: false,
-    manifest: {
-      version: 1,
-      quorum: 1,
-      signers: [{ publicKey, namespace }]
-    }
-  })
-
-  t.teardown(async () => { await core.close() })
-
-  await core.ready()
-
-  const batch = core.batch()
-  await batch.ready()
-
-  await batch.append('Block 0')
-  await batch.append('Block 1')
-  await batch.flush({ keyPair: null })
-
-  const request = await generate(batch)
-  return {
-    request: z32.encode(request),
-    verify (signature) {
-      const b = batch.createTreeBatch()
-      return core.core.tree.crypto.verify(b.signable(batch.key), signature, publicKey)
-    }
-  }
-}
-
-async function getDriveSigningRequest (z32publicKey, t) {
-  const publicKey = z32.decode(z32publicKey)
-
-  const store = new Corestore(RAM.reusable(), { manifestVersion: 1, compat: false })
-  const drive = new Hyperdrive(store)
-
-  t.teardown(async () => {
-    await drive.close()
-    await store.close()
-  })
-
-  await drive.ready()
-
-  await drive.put('a', b4a.from('Block 0'))
-  await drive.put('b', b4a.from('Block 1'))
-
-  const metadataSigners = drive.core.manifest.signers.slice()
-  metadataSigners[0].publicKey = publicKey
-
-  const metadataManifest = { ...drive.core.manifest, signers: metadataSigners }
-
-  const metadataKey = Hypercore.key(metadataManifest)
-  const contentKey = Hyperdrive.getContentKey(metadataManifest)
-
-  const request = await generate(drive, { manifest: metadataManifest })
-
-  return {
-    request: z32.encode(request),
-    verify ([metadata, content]) {
-      const b1 = drive.core.createTreeBatch()
-      const b2 = drive.blobs.core.createTreeBatch()
-
-      return drive.core.core.tree.crypto.verify(b1.signable(metadataKey), metadata, publicKey) &&
-        drive.core.core.tree.crypto.verify(b2.signable(contentKey), content, publicKey)
-    }
-  }
-}
 
 test('e2e - sign a core', async t => {
   const keysDir = await tmp(t)
 
-  const tCreateKeys = t.test()
-  tCreateKeys.plan(2)
+  const t1 = t.test()
+  t1.plan(2)
 
-  const env = {
-    ...process.env, HYPERCORE_SIGN_KEYS_DIRECTORY: keysDir
-  }
+  const g = spawn('node', ['./bin/cli.js', 'generate', keysDir])
 
-  const genKeysProcess = spawn(
-    'node', ['generate-keys.js'], { env }
-  )
-  genKeysProcess.on('close', (code) => {
-    tCreateKeys.is(code, 0, 'Successfully created keys')
-  })
+  t1.teardown(() => g.kill('SIGKILL'))
 
-  let publicKey = null
-  try {
-    genKeysProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString().toLowerCase()
+  g.on('close', (code) => { t1.is(code, 0, 'Successfully created keys') })
 
-      if (DEBUG_LOG) console.log('[generate-keys]', data.toString())
+  const publicKey = await dummyUser(g, { password: DUMMY_PASSWORD })
+  const exp = await fsProm.readFile(path.join(keysDir, 'default.public'), 'utf-8')
 
-      if (data.includes('password:')) {
-        // Enter the password
-        genKeysProcess.stdin.write(DUMMY_PASSWORD)
-      }
-      if (data.includes('public key is')) {
-        tCreateKeys.pass('Key creation done')
-        publicKey = data.split('public key is ')[1].trim()
-      }
-    })
-
-    genKeysProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('generate-keys errored')
-    })
-
-    await tCreateKeys
-  } finally {
-    // To ensure the process is always killed
-    genKeysProcess.kill('SIGKILL')
-  }
-
-  const readPublicKey = await fsProm.readFile(
-    path.join(keysDir, 'default.public'), 'utf-8'
-  )
-  t.alike(
-    publicKey,
-    readPublicKey,
-    'Public key got written to file'
-  )
+  t1.alike(publicKey, exp, 'Public key got written to file')
+  await t1
 
   const { request, verify } = await getSigningRequest(publicKey, t)
 
-  const tSign = t.test()
-  tSign.plan(2)
+  const keyFile = path.join(keysDir, 'default')
 
-  const signProcess = spawn(
-    'node', ['sign.js', request], { env }
-  )
-  signProcess.on('close', (code) => {
-    tSign.is(code, 0, '0 status code for message signing process')
+  const t2 = t.test()
+  t2.plan(2)
+
+  const s = spawn('node', ['./bin/cli.js', 'sign', request, '-i', keyFile])
+
+  t2.teardown(() => s.kill('SIGKILL'))
+
+  s.on('close', (code) => { t2.is(code, 0, '0 status code for message signing process') })
+
+  const signing = dummySigner(s, { password: DUMMY_PASSWORD })
+  t2.execution(signing)
+
+  const response = await signing
+
+  await t2
+
+  const t3 = t.test()
+  t3.plan(2)
+
+  const v = spawn('node', ['./bin/cli.js', 'verify', response, request, publicKey])
+
+  t3.teardown(() => v.kill('SIGKILL'))
+
+  v.on('close', (code) => { t3.is(code, 0, '0 status code for verify process') })
+
+  let data = ''
+  v.stdout.on('data', (bufferData) => {
+    data += bufferData.toString()
   })
 
-  let response = null
-  try {
-    signProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString().toLowerCase()
-      if (DEBUG_LOG) console.log('[sign]', data)
-
-      if (data.includes('confirm?')) {
-        // Enter the password
-        signProcess.stdin.write('y\n')
-      }
-
-      if (data.includes('password')) {
-        // Enter the password
-        signProcess.stdin.write(DUMMY_PASSWORD)
-      }
-
-      if (data.includes('reply with:')) {
-        response = data.split('reply with:')[1].trim()
-        tSign.pass('Successfully signed the message')
-      }
-    })
-
-    signProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('sign errored')
-    })
-
-    await tSign
-  } finally {
-    // To ensure the process is always killed
-    signProcess.kill('SIGKILL')
-  }
-
-  const tVerify = t.test()
-  tVerify.plan(2)
-
-  const verifyProcess = spawn(
-    'node', ['verify.js', response, request, publicKey], { env }
-  )
-  verifyProcess.on('close', (code) => {
-    tVerify.is(code, 0, '0 status code for verify process')
+  v.stderr.on('data', (data) => {
+    t3.fail('verify errored')
   })
 
-  try {
-    let data = ''
-    verifyProcess.stdout.on('data', (bufferData) => {
-      data += bufferData.toString()
-    })
-
-    verifyProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('verify errored')
-    })
-
-    verifyProcess.stdout.on('close', () => {
-      if (DEBUG_LOG) console.log('[verify]', data)
-
-      if (data.includes('Signature verified.')) {
-        if (data.includes(publicKey)) {
-          tVerify.pass('Verified that the message got signed by the correct public key')
-        } else {
-          tVerify.fail('Message was signed by an incorrect public key--bug in test setup')
-        }
+  v.stdout.on('close', () => {
+    if (data.includes('Signature verified.')) {
+      if (data.includes(publicKey)) {
+        t3.pass('Verified that the message got signed by the correct public key')
+      } else {
+        t3.fail('Message was signed by an incorrect public key--bug in test setup')
       }
-    })
+    }
+  })
 
-    await tVerify
+  await t3
 
-    // verify against actual core
-    const { signatures } = c.decode(Response, z32.decode(response))
-    t.ok(verify(signatures[0]))
+  // verify against actual core
+  const { signatures } = c.decode(Response, z32.decode(response))
+  t.ok(verify(signatures[0]))
 
-    // sanity check
-    signatures[0].fill(0)
-    t.absent(verify(signatures[0]))
-  } finally {
-    // To ensure the process is always killed
-    verifyProcess.kill('SIGKILL')
-  }
+  // sanity check
+  signatures[0].fill(0)
+  t.absent(verify(signatures[0]))
 })
 
-test('e2e - sign a drive', async t => {
+test('e2e - sign a core', async t => {
   const keysDir = await tmp(t)
 
-  const tCreateKeys = t.test()
-  tCreateKeys.plan(2)
+  const t1 = t.test()
+  t1.plan(2)
 
-  const env = {
-    ...process.env, HYPERCORE_SIGN_KEYS_DIRECTORY: keysDir
-  }
+  const g = spawn('node', ['./bin/cli.js', 'generate', keysDir])
 
-  const genKeysProcess = spawn(
-    'node', ['generate-keys.js'], { env }
-  )
-  genKeysProcess.on('close', (code) => {
-    tCreateKeys.is(code, 0, 'Successfully created keys')
-  })
+  t1.teardown(() => g.kill('SIGKILL'))
 
-  let publicKey = null
-  try {
-    genKeysProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString().toLowerCase()
+  g.on('close', (code) => { t1.is(code, 0, 'Successfully created keys') })
 
-      if (DEBUG_LOG) console.log('[generate-keys]', data.toString())
+  const publicKey = await dummyUser(g, { password: DUMMY_PASSWORD })
+  const exp = await fsProm.readFile(path.join(keysDir, 'default.public'), 'utf-8')
 
-      if (data.includes('password:')) {
-        // Enter the password
-        genKeysProcess.stdin.write(DUMMY_PASSWORD)
-      }
-      if (data.includes('public key is')) {
-        tCreateKeys.pass('Key creation done')
-        publicKey = data.split('public key is ')[1].trim()
-      }
-    })
-
-    genKeysProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('generate-keys errored')
-    })
-
-    await tCreateKeys
-  } finally {
-    // To ensure the process is always killed
-    genKeysProcess.kill('SIGKILL')
-  }
-
-  const readPublicKey = await fsProm.readFile(
-    path.join(keysDir, 'default.public'), 'utf-8'
-  )
-  t.alike(
-    publicKey,
-    readPublicKey,
-    'Public key got written to file'
-  )
+  t1.alike(publicKey, exp, 'Public key got written to file')
+  await t1
 
   const { request, verify } = await getDriveSigningRequest(publicKey, t)
 
-  const tSign = t.test()
-  tSign.plan(2)
+  const keyFile = path.join(keysDir, 'default')
 
-  const signProcess = spawn(
-    'node', ['sign.js', request], { env }
-  )
-  signProcess.on('close', (code) => {
-    tSign.is(code, 0, '0 status code for message signing process')
+  const t2 = t.test()
+  t2.plan(2)
+
+  const s = spawn('node', ['./bin/cli.js', 'sign', request, '-i', keyFile])
+
+  t2.teardown(() => s.kill('SIGKILL'))
+
+  s.on('close', (code) => { t2.is(code, 0, '0 status code for message signing process') })
+
+  const signing = dummySigner(s, { password: DUMMY_PASSWORD })
+  t2.execution(signing)
+
+  const response = await signing
+
+  await t2
+
+  const t3 = t.test()
+  t3.plan(2)
+
+  const v = spawn('node', ['./bin/cli.js', 'verify', response, request, publicKey])
+
+  t3.teardown(() => v.kill('SIGKILL'))
+
+  v.on('close', (code) => { t3.is(code, 0, '0 status code for verify process') })
+
+  let data = ''
+  v.stdout.on('data', (bufferData) => {
+    data += bufferData.toString()
   })
 
-  let response = null
-  try {
-    signProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString().toLowerCase()
-      if (DEBUG_LOG) console.log('[sign]', data)
-
-      if (data.includes('confirm?')) {
-        // Enter the password
-        signProcess.stdin.write('y\n')
-      }
-
-      if (data.includes('password')) {
-        // Enter the password
-        signProcess.stdin.write(DUMMY_PASSWORD)
-      }
-
-      if (data.includes('reply with:')) {
-        response = data.split('reply with:')[1].trim()
-        tSign.pass('Successfully signed the message')
-      }
-    })
-
-    signProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('sign errored')
-    })
-
-    await tSign
-  } finally {
-    // To ensure the process is always killed
-    signProcess.kill('SIGKILL')
-  }
-
-  const tVerify = t.test()
-  tVerify.plan(2)
-
-  const verifyProcess = spawn(
-    'node', ['verify.js', response, request, publicKey], { env }
-  )
-  verifyProcess.on('close', (code) => {
-    tVerify.is(code, 0, '0 status code for verify process')
+  v.stderr.on('data', (data) => {
+    t3.fail('verify errored')
   })
 
-  try {
-    let data = ''
-    verifyProcess.stdout.on('data', (bufferData) => {
-      data += bufferData.toString()
-    })
-
-    verifyProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('verify errored')
-    })
-
-    verifyProcess.stdout.on('close', () => {
-      if (DEBUG_LOG) console.log('[verify]', data)
-
-      if (data.includes('Signature verified.')) {
-        if (data.includes(publicKey)) {
-          tVerify.pass('Verified that the message got signed by the correct public key')
-        } else {
-          tVerify.fail('Message was signed by an incorrect public key--bug in test setup')
-        }
+  v.stdout.on('close', () => {
+    if (data.includes('Signature verified.')) {
+      if (data.includes(publicKey)) {
+        t3.pass('Verified that the message got signed by the correct public key')
+      } else {
+        t3.fail('Message was signed by an incorrect public key--bug in test setup')
       }
-    })
+    }
+  })
 
-    await tVerify
+  await t3
 
-    // verify against actual core
-    const { signatures } = c.decode(Response, z32.decode(response))
-    t.ok(verify(signatures))
+  // verify against actual core
+  const { signatures } = c.decode(Response, z32.decode(response))
+  t.ok(verify(signatures))
 
-    // sanity check
-    signatures[0].fill(0)
-    t.absent(verify(signatures))
-  } finally {
-    // To ensure the process is always killed
-    verifyProcess.kill('SIGKILL')
-  }
+  // sanity check
+  signatures[0].fill(0)
+  t.absent(verify(signatures))
 })
 
 test('e2e - v1 fixture', async t => {
   t.plan(3)
 
-  const request = await fsProm.readFile(path.join(__dirname, 'fixtures', 'requests', 'v1.request'), 'utf8')
-  const env = { ...process.env, HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(__dirname, 'fixtures', 'keys') }
+  const request = await fsProm.readFile(path.join(__dirname, 'fixtures', 'requests', 'default.v1.core'), 'utf8')
 
-  const proc = spawn('node', ['sign.js', request], { env })
+  const keyFile = path.join(__dirname, 'fixtures', 'keys', 'default')
+  const proc = spawn('node', ['./bin/cli.js', '-i', keyFile, request])
 
   t.teardown(() => proc.kill('SIGKILL'))
 
@@ -399,7 +186,6 @@ test('e2e - v1 fixture', async t => {
 
   proc.stdout.on('data', (bufferData) => {
     const data = bufferData.toString().toLowerCase()
-    if (DEBUG_LOG) console.log('[sign]', data)
 
     if (data.includes('confirm?')) {
       // Enter the password
@@ -431,10 +217,10 @@ test('e2e - v1 fixture', async t => {
 test('e2e - v2 fixture', async t => {
   t.plan(3)
 
-  const request = await fsProm.readFile(path.join(__dirname, 'fixtures', 'requests', 'v2.request'), 'utf8')
-  const env = { ...process.env, HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(__dirname, 'fixtures', 'keys') }
+  const request = await fsProm.readFile(path.join(__dirname, 'fixtures', 'requests', 'default.v2.core'), 'utf8')
 
-  const proc = spawn('node', ['sign.js', request], { env })
+  const keyFile = path.join(__dirname, 'fixtures', 'keys', 'default')
+  const proc = spawn('node', ['./bin/cli.js', '-i', keyFile, request])
 
   t.teardown(() => proc.kill('SIGKILL'))
 
@@ -444,7 +230,6 @@ test('e2e - v2 fixture', async t => {
 
   proc.stdout.on('data', (bufferData) => {
     const data = bufferData.toString().toLowerCase()
-    if (DEBUG_LOG) console.log('[sign]', data)
 
     if (data.includes('confirm?')) {
       // Enter the password
@@ -476,12 +261,10 @@ test('e2e - v2 fixture', async t => {
 test('e2e - v2 drive fixture', async t => {
   t.plan(3)
 
-  const request = await fsProm.readFile(path.join(__dirname, 'fixtures', 'requests', 'v2-drive.request'), 'utf8')
-  const env = { ...process.env, HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(__dirname, 'fixtures', 'keys') }
+  const request = await fsProm.readFile(path.join(__dirname, 'fixtures', 'requests', 'default.v2.drive'), 'utf8')
 
-  t.plan(3)
-
-  const proc = spawn('node', ['sign.js', request], { env })
+  const keyFile = path.join(__dirname, 'fixtures', 'keys', 'default')
+  const proc = spawn('node', ['./bin/cli.js', '-i', keyFile, request])
 
   t.teardown(() => proc.kill('SIGKILL'))
 
@@ -491,7 +274,6 @@ test('e2e - v2 drive fixture', async t => {
 
   proc.stdout.on('data', (bufferData) => {
     const data = bufferData.toString().toLowerCase()
-    if (DEBUG_LOG) console.log('[sign]', data)
 
     if (data.includes('confirm?')) {
       // Enter the password

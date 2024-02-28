@@ -7,9 +7,7 @@
     "test": "standard && brittle test/*.js --coverage"
   },
   "bin": {
-    "hypercore-sign": "./sign.js",
-    "hypercore-verify": "./verify.js",
-    "hypercore-sign-generate-keys": "./generate-keys.js"
+    "hypercore-sign": "./bin/cli.js"
   },
   "repository": {
     "type": "git",
@@ -24,6 +22,7 @@
   "dependencies": {
     "compact-encoding": "^2.13.0",
     "hypercore-signing-request": "^3.1.1",
+    "minimist": "^1.2.8",
     "secure-prompt": "^1.2.0",
     "sodium-native": "^4.0.7",
     "z32": "^1.0.1"
