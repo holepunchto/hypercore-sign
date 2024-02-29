@@ -4,12 +4,10 @@
   "description": "Sign Hypercores",
   "main": "index.js",
   "scripts": {
-    "test": "standard && brittle test.js --coverage"
+    "test": "standard && brittle test/*.js --coverage"
   },
   "bin": {
-    "hypercore-sign": "./sign.js",
-    "hypercore-verify": "./verify.js",
-    "hypercore-sign-generate-keys": "./generate-keys.js"
+    "hypercore-sign": "./bin/cli.js"
   },
   "repository": {
     "type": "git",
@@ -24,13 +22,16 @@
   "dependencies": {
     "compact-encoding": "^2.13.0",
     "hypercore-signing-request": "^3.1.1",
+    "minimist": "^1.2.8",
     "secure-prompt": "^1.2.0",
     "sodium-native": "^4.0.7",
     "z32": "^1.0.1"
   },
   "devDependencies": {
     "brittle": "^3.4.0",
+    "corestore": "^6.17.0",
     "hypercore": "^10.32.8",
+    "hyperdrive": "^11.7.0",
     "random-access-memory": "^6.2.0",
     "standard": "^17.1.0",
     "test-tmp": "^1.1.1"
