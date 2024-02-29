@@ -370,7 +370,35 @@ test('verify - storage dir, no corresponding key', async t => {
 
   t.teardown(() => v.kill('SIGKILL'))
 
-  v.on('close', (code) => { t.is(code, 1, 'Successfully verified response') })
+  v.on('close', (code) => { t.is(code, 1, 'Successfully rejected response') })
+
+  await t.exception(new Promise((resolve, reject) => {
+    v.stdout.on('data', data => {
+      if (data.toString().includes('Signature verified.')) {
+        resolve()
+      }
+    })
+
+    v.stderr.on('data', (data) => {
+      reject(new Error('verification failed'))
+    })
+  }))
+})
+
+test('verify - storage dir conflicts key', async t => {
+  t.plan(2)
+
+  const storageDir = path.resolve(__dirname, 'fixtures', 'storage') // alternate is trusted
+  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default.public') // alternate is trusted
+
+  const request = await fs.readFile(path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core'))
+  const response = await fs.readFile(path.resolve(__dirname, 'fixtures', 'responses', 'default.v2.core'))
+
+  const v = spawn('node', ['./bin/cli.js', 'verify', response, request, '-d', storageDir, '-i', keyFile])
+
+  t.teardown(() => v.kill('SIGKILL'))
+
+  v.on('close', (code) => { t.is(code, 1, 'Successfully rejected response') })
 
   await t.exception(new Promise((resolve, reject) => {
     v.stdout.on('data', data => {
