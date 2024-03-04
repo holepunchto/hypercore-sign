@@ -18,7 +18,7 @@ async function main () {
     console.log(`hypercore-verify ${version}\n`)
     console.log('Verify a signed message.')
     console.log('\nUsage:')
-    console.log('hypercore-verify <response> <signingRequest>  <pubkey>\n')
+    console.log('hypercore-verify <response> <signingRequest> <pubkey>\n')
     process.exit(1)
   }
 
@@ -29,7 +29,6 @@ async function main () {
   try {
     req = request.decode(z32.decode(signingRequest))
   } catch (e) {
-    console.log(e)
     console.error('\nCould not decode the signing request. Invalid signing request?')
     process.exit(1)
   }
@@ -46,9 +45,16 @@ async function main () {
     throw new Error('Public key does not match')
   }
 
-  const signable = request.signable(publicKey, req)
-  if (!sodium.crypto_sign_verify_detached(res.signature, signable, publicKey)) {
-    throw new Error('Invalid signature!')
+  const signables = request.signable(publicKey, req)
+
+  if (signables.length !== res.signatures.length) {
+    throw new Error('Invalid response: signature count does not match')
+  }
+
+  for (let i = 0; i < signables.length; i++) {
+    if (!sodium.crypto_sign_verify_detached(res.signatures[i], signables[i], publicKey)) {
+      throw new Error('Invalid signature!')
+    }
   }
 
   console.log('\nSignature verified.')

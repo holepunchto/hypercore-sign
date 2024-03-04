@@ -43,39 +43,48 @@ async function main () {
     throw new Error('Request version not supported, please update')
   }
 
-  console.log('\nRequest data:')
-  console.log({
-    core: req.id,
-    fork: req.fork,
-    length: req.length,
-    treeHash: req.treeHash.toString('hex')
-  })
+  if (req.isHyperdrive) {
+    console.log(box('Hyperdrive signing request'))
+    console.log(formatHyperdriveRequest(req))
+  } else {
+    console.log(box('Hypercore signing request'))
+    console.log(formatHypercoreRequest(req))
+  }
   console.log()
 
   if (!(await userConfirm())) {
-    console.log('\nRequest rejected.')
+    console.log('\nRequest aborted.')
     process.exit(1)
   }
 
   console.log('\nRequest data is confirmed')
-  console.log('Proceeding with signing...')
+  console.log('Proceeding to sign...')
 
   const requestHash = hash(z32.decode(signingRequest))
 
   const secretKey = z32.decode(await fsProm.readFile(secretKeyPath, 'utf-8'))
   const publicKey = z32.decode(await fsProm.readFile(publicKeyPath, 'utf-8'))
 
-  const signable = request.signable(publicKey, req)
+  const signables = request.signable(publicKey, req)
 
-  console.log('\nUnlocking key pair...\n')
+  console.log(`\nSigning with ${secretKeyPath}\n`)
+  if (!(await userConfirm())) {
+    console.log('\nRequest aborted.')
+    process.exit(1)
+  }
+  console.log()
+
+  // wait a tick before passing on stdin
+  await new Promise(setImmediate)
+
   const password = await readPassword()
-  const signature = sign(signable, secretKey, password)
+  const signatures = sign(signables, secretKey, password)
 
   const response = c.encode(Response, {
     version: req.version,
     requestHash,
     publicKey,
-    signature
+    signatures
   })
 
   console.log(`\nSigned with public key:\n\n${z32.encode(publicKey)}`)
@@ -85,7 +94,7 @@ async function main () {
 
 main()
 
-async function userConfirm (prompt = 'Confirm? [y/N]') {
+async function userConfirm (prompt = 'Confirm? [y/N] ') {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -119,4 +128,36 @@ async function userConfirm (prompt = 'Confirm? [y/N]') {
     rl.close()
     return answer
   }
+}
+
+function formatHypercoreRequest (req) {
+  return {
+    core: req.id,
+    fork: req.fork,
+    length: req.length,
+    treeHash: req.treeHash.toString('hex')
+  }
+}
+
+function formatHyperdriveRequest (req) {
+  return {
+    key: req.id,
+    fork: req.fork,
+    metadata: {
+      length: req.length,
+      treeHash: req.treeHash.toString('hex')
+    },
+    content: {
+      length: req.content.length,
+      treeHash: req.content.treeHash.toString('hex')
+    }
+  }
+}
+
+function box (text) {
+  const mid = '\u2502 ' + text + ' \u2502'
+  const top = '\u250c'.padEnd(mid.length - 1, '\u2500') + '\u2510'
+  const btm = '\u2514'.padEnd(mid.length - 1, '\u2500') + '\u2518'
+
+  return [top, mid, btm].join('\n')
 }

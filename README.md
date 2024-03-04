@@ -59,3 +59,7 @@ For example:
 ```
 hypercore-verify dd89etw5o34f7bej6omrr9cxnwcd5fz6xwgamjpeyp469jq53i5yrjbxg4cftogtyyq9j1zthrsxt6mad6gwc5c6udh7n16n5gy6ayobbhyrc9y5k3s1ghwo1jhxyr844chw6fbaucd9ahp5c8ooh9qp857j8zabyyyynyeyefnq7jjth1b7kuocnu4cw48yct8ukw4d97zhsdaykeyqnmgze9ftwkj85q35t5kbnzq35155ospeh69fc657richmnb59nhk7xwd56e hu3rzup73iwuf35n458e54i3opmzo7wbbgisbuwmz7jr7jotgexo
 ```
+
+## License
+
+Apache-2.0
