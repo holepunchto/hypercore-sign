@@ -6,10 +6,16 @@ const test = require('brittle')
 const { getSigningRequest, getDriveSigningRequest } = require('./')
 
 const fixtures = path.resolve(__dirname, '..', 'fixtures')
+const rootDir = path.resolve(__dirname, '..', '..')
 
-const name = process.argv[2]
-const keyFile = process.argv[3] || path.join(fixtures, 'keys', 'default')
+const name = process.argv[2] || 'default'
+const version = process.argv[3] || 'v2'
 const password = process.argv[4] || 'password'
+const keyFile = path.join(fixtures, 'keys', name)
+
+const prefix = name + '.' + version
+const corePath = path.join(fixtures, 'requests', prefix + '.core')
+const drivePath = path.join(fixtures, 'requests', prefix + '.drive')
 
 test('generate fixture', async t => {
   t.plan(2)
@@ -23,9 +29,6 @@ test('generate fixture', async t => {
   const core = await getSigningRequest(publicKey, t)
   const drive = await getDriveSigningRequest(publicKey, t)
 
-  const corePath = path.join(fixtures, 'requests', name + '.core')
-  const drivePath = path.join(fixtures, 'requests', name + '.drive')
-
   if (fs.existsSync(corePath) || fs.existsSync(drivePath)) {
     t.fail('fixture already exists, delete before overwriting')
     process.exit(1)
@@ -33,13 +36,25 @@ test('generate fixture', async t => {
 
   fs.writeFileSync(corePath, core.request, 'utf8')
   fs.writeFileSync(drivePath, drive.request, 'utf8')
+})
 
-  const proc = spawn('node', ['./bin/cli.js', '-i', keyFile, core.request])
+test('generate responses', async t => {
+  t.plan(2)
+
+  if (!fs.existsSync(corePath) || !fs.existsSync(drivePath)) {
+    t.fail('No fixture exists, have they been generated?')
+    process.exit(1)
+  }
+
+  const coreReq = fs.readFileSync(corePath, 'utf8')
+  const driveReq = fs.readFileSync(drivePath, 'utf8')
+
+  const proc = spawn('node', [path.resolve(rootDir, './bin/cli.js'), '-i', keyFile, coreReq])
 
   t.teardown(() => proc.kill('SIGKILL'))
 
   proc.on('close', (code) => {
-    t.pass(code, 0, '0 status code for message signing process')
+    t.is(code, 0, '0 status code for message signing process')
   })
 
   proc.stdout.on('data', (bufferData) => {
@@ -57,16 +72,16 @@ test('generate fixture', async t => {
 
     if (data.includes('reply with:')) {
       const response = data.split('reply with:')[1].trim()
-      fs.writeFileSync(path.join(fixtures, 'responses', name + '.core'), response, 'utf8')
+      fs.writeFileSync(path.join(fixtures, 'responses', prefix + '.core'), response, 'utf8')
     }
   })
 
-  const proc2 = spawn('node', ['./bin/cli.js', '-i', keyFile, drive.request])
+  const proc2 = spawn('node', [path.resolve(rootDir, './bin/cli.js'), '-i', keyFile, driveReq])
 
   t.teardown(() => proc2.kill('SIGKILL'))
 
   proc2.on('close', (code) => {
-    t.pass(code, 0, '0 status code for message signing process')
+    t.is(code, 0, '0 status code for message signing process')
   })
 
   proc2.stdout.on('data', (bufferData) => {
@@ -84,7 +99,7 @@ test('generate fixture', async t => {
 
     if (data.includes('reply with:')) {
       const response = data.split('reply with:')[1].trim()
-      fs.writeFileSync(path.join(fixtures, 'responses', name + '.drive'), response, 'utf8')
+      fs.writeFileSync(path.join(fixtures, 'responses', prefix + '.drive'), response, 'utf8')
     }
   })
 })
