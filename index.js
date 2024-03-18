@@ -217,7 +217,10 @@ async function verifier (response, signingRequest, pubkey) {
   }
 
   for (let i = 0; i < signables.length; i++) {
-    if (!sodium.crypto_sign_verify_detached(res.signatures[i], signables[i], publicKey)) {
+    const { signature } = res.signatures[i]
+    const { signable } = signables[i]
+
+    if (!sodium.crypto_sign_verify_detached(signature, signable, publicKey)) {
       throw new Error('Invalid signature!')
     }
   }

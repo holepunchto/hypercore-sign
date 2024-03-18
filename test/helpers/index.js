@@ -40,7 +40,7 @@ async function getSigningRequest (z32publicKey, t) {
   const request = await generate(batch)
   return {
     request: z32.encode(request),
-    verify (signature) {
+    verify ({ signature }) {
       const b = batch.createTreeBatch()
       return core.core.tree.crypto.verify(b.signable(batch.key), signature, publicKey)
     }
@@ -79,8 +79,8 @@ async function getDriveSigningRequest (z32publicKey, t) {
       const b1 = drive.core.createTreeBatch()
       const b2 = drive.blobs.core.createTreeBatch()
 
-      return drive.core.core.tree.crypto.verify(b1.signable(metadataKey), metadata, publicKey) &&
-        drive.core.core.tree.crypto.verify(b2.signable(contentKey), content, publicKey)
+      return drive.core.core.tree.crypto.verify(b1.signable(metadataKey), metadata.signature, publicKey) &&
+        drive.core.core.tree.crypto.verify(b2.signable(contentKey), content.signature, publicKey)
     }
   }
 }
