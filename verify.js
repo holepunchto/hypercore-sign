@@ -52,7 +52,7 @@ async function main () {
   }
 
   for (let i = 0; i < signables.length; i++) {
-    if (!sodium.crypto_sign_verify_detached(res.signatures[i], signables[i], publicKey)) {
+    if (!sodium.crypto_sign_verify_detached(res.signatures[i], signables[i].signable, publicKey)) {
       throw new Error('Invalid signature!')
     }
   }
