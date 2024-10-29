@@ -78,7 +78,7 @@ async function main () {
   await new Promise(setImmediate)
 
   const password = await readPassword()
-  const signatures = sign(signables, secretKey, password)
+  const signatures = await sign(signables, secretKey, password)
 
   const response = c.encode(Response, {
     version: req.version,
