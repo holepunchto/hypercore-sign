@@ -39,7 +39,7 @@ async function main () {
     process.exit(1)
   }
 
-  const { secretKey, publicKey } = generateKeys(password)
+  const { secretKey, publicKey } = await generateKeys(password)
 
   // Prompt a confirmation when overwriting
   // (Because you probably don't want to overwrite these,
