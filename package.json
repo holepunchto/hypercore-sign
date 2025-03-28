@@ -23,8 +23,8 @@
   "homepage": "https://github.com/holepunchto/hypercore-sign#readme",
   "dependencies": {
     "compact-encoding": "^2.13.0",
-    "hypercore-signing-request": "^3.1.1",
-    "secure-prompt": "^1.2.0",
+    "hypercore-signing-request": "^4.0.0",
+    "secure-prompt": "git@github.com:maidh91/secure-prompt.git#ac01ffff98d6b38d69037220e0caf837c8c3ef66",
     "sodium-native": "^4.0.7",
     "z32": "^1.0.1"
   },
