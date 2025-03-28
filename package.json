@@ -24,7 +24,7 @@
   "dependencies": {
     "compact-encoding": "^2.13.0",
     "hypercore-signing-request": "^4.0.0",
-    "secure-prompt": "git@github.com:maidh91/secure-prompt.git#45a22a75b04ee0e3f1e685ec4c3b709e7fb7f34e",
+    "secure-prompt": "^1.2.0",
     "sodium-native": "^4.0.7",
     "z32": "^1.0.1"
   },
