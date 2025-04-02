@@ -3,17 +3,18 @@
 const { version } = require('./package.json')
 const verify = require('./lib/verify')
 
+const usage = `
+hypercore-verify ${version}
+
+Verify a signed message.
+
+hypercore-verify <response> <signingRequest> <pubkey>
+`
+
 async function main () {
   const response = process.argv[2]
   const signingRequest = process.argv[3]
   const pubkey = process.argv[4]
-  if (!response || !signingRequest || !pubkey) {
-    console.log(`hypercore-verify ${version}\n`)
-    console.log('Verify a signed message.')
-    console.log('\nUsage:')
-    console.log('hypercore-verify <response> <signingRequest> <pubkey>\n')
-    process.exit(1)
-  }
 
   try {
     const req = await verify(response, signingRequest, pubkey)
@@ -26,7 +27,11 @@ async function main () {
       treeHash: req.treeHash.toString('hex')
     })
   } catch (err) {
-    console.error(err)
+    if (err.message === 'Invalid arguments') {
+      console.log(usage)
+    } else {
+      console.error(err)
+    }
     process.exit(1)
   }
 }
