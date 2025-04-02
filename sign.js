@@ -34,7 +34,6 @@ async function main () {
   try {
     req = request.decode(z32.decode(signingRequest))
   } catch (e) {
-    console.log(e)
     console.error('\nCould not decode the signing request. Invalid signing request?')
     process.exit(1)
   }
