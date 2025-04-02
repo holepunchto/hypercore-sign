@@ -4,12 +4,13 @@ const path = require('path')
 const fsProm = require('fs/promises')
 const os = require('os')
 const readline = require('readline')
+const crypto = require('hypercore-crypto')
 const request = require('hypercore-signing-request')
 const z32 = require('z32')
 const c = require('compact-encoding')
 
 const { version } = require('./package.json')
-const { readPassword, sign, hash } = require('./lib/secure')
+const { readPassword, sign } = require('./lib/secure')
 const { Response } = require('./lib/messages')
 const { MAX_SUPPORTED_VERSION } = require('./lib/constants')
 
@@ -60,7 +61,7 @@ async function main () {
   console.log('\nRequest data is confirmed')
   console.log('Proceeding to sign...')
 
-  const requestHash = hash(z32.decode(signingRequest))
+  const requestHash = crypto.hash(z32.decode(signingRequest))
 
   const secretKey = z32.decode(await fsProm.readFile(secretKeyPath, 'utf-8'))
   const publicKey = z32.decode(await fsProm.readFile(publicKeyPath, 'utf-8'))
