@@ -1,5 +1,4 @@
 module.exports = {
-  Response: require('./lib/messages').Response,
-  verify: require('./lib/verify'),
-  hash: require('./lib/secure').hash
+  messages: require('./lib/messages'),
+  verify: require('./lib/verify')
 }
