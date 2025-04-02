@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-const z32 = require('z32')
-
 const { version } = require('./package.json')
 const verify = require('./lib/verify')
 
