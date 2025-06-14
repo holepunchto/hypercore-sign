@@ -13,7 +13,8 @@ const USER_ONLY_R = 0o400
 const USER_ONLY_RW = 0o600
 const USER_ONLY_RWX = 0o700
 
-const { readPassword, generateKeys, confirmPassword } = require('./lib/secure')
+const { generateKeys } = require('./lib/secure')
+const { readPassword, confirmPassword } = require('./lib/password')
 
 async function main () {
   const dir = process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')
