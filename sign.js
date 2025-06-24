@@ -10,7 +10,8 @@ const z32 = require('z32')
 const c = require('compact-encoding')
 
 const { version } = require('./package.json')
-const { readPassword, sign } = require('./lib/secure')
+const { sign } = require('./lib/secure')
+const { readPassword } = require('./lib/password')
 const { Response } = require('./lib/messages')
 const { MAX_SUPPORTED_VERSION } = require('./lib/constants')
 
