@@ -11,6 +11,13 @@
     "hypercore-verify": "./verify.js",
     "hypercore-sign-generate-keys": "./generate-keys.js"
   },
+  "files": [
+    "index.js",
+    "sign.js",
+    "verify.js",
+    "generate-keys.js",
+    "lib/*.js"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/holepunchto/hypercore-sign.git"
