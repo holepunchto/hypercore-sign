@@ -83,6 +83,7 @@ async function main () {
   const signatures = sign(signables, secretKey, password)
 
   const response = c.encode(Response, {
+    key: req.id,
     version: req.version,
     requestHash,
     publicKey,
