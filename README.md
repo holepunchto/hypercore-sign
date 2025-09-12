@@ -23,7 +23,7 @@ By default, keys are written to:
 - public key: `~/.hypercore-sign/default.public`
 
 ```
-hypercore-sign generate-keys
+hypercore-sign-generate-keys
 
 # you will be prompted for password
 > Key-pair password:...
