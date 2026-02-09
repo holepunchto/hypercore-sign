@@ -29,6 +29,7 @@
   },
   "homepage": "https://github.com/holepunchto/hypercore-sign#readme",
   "dependencies": {
+    "hypercore-sign-lib": "github:holepunchto/hypercore-sign-lib#f7a891c8548e5d99b6aab3629846b95f9c95ddae",
     "compact-encoding": "^2.13.0",
     "hypercore-crypto": "^3.5.0",
     "hypercore-signing-request": "^4.0.0",

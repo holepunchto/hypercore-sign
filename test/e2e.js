@@ -5,14 +5,13 @@ const Hypercore = require('hypercore')
 const Hyperdrive = require('hyperdrive')
 const Corestore = require('corestore')
 const RAM = require('random-access-memory')
+const { Response } = require('hypercore-sign-lib')
 const { generate } = require('hypercore-signing-request')
 const { spawn } = require('child_process')
 const tmp = require('test-tmp')
 const b4a = require('b4a')
 const z32 = require('z32')
 const c = require('compact-encoding')
-
-const { Response } = require('../lib/messages')
 
 const DEBUG_LOG = false
 const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')

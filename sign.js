@@ -5,15 +5,13 @@ const fsProm = require('fs/promises')
 const os = require('os')
 const readline = require('readline')
 const crypto = require('hypercore-crypto')
+const { MAX_SUPPORTED_VERSION, Response, sign } = require('hypercore-sign-lib')
 const request = require('hypercore-signing-request')
 const z32 = require('z32')
 const c = require('compact-encoding')
 
 const { version } = require('./package.json')
-const { sign } = require('./lib/secure')
 const { readPassword } = require('./lib/password')
-const { Response } = require('./lib/messages')
-const { MAX_SUPPORTED_VERSION } = require('./lib/constants')
 
 const homeDir = os.homedir()
 

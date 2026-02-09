@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
+const { verify } = require('hypercore-sign-lib')
+
 const { version } = require('./package.json')
-const verify = require('./lib/verify')
 
 const usage = `
 hypercore-verify ${version}

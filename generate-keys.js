@@ -3,6 +3,7 @@
 const path = require('path')
 const fs = require('fs')
 const fsProm = fs.promises
+const { generateKeys } = require('hypercore-sign-lib')
 const os = require('os')
 const z32 = require('z32')
 
@@ -13,7 +14,6 @@ const USER_ONLY_R = 0o400
 const USER_ONLY_RW = 0o600
 const USER_ONLY_RWX = 0o700
 
-const { generateKeys } = require('./lib/secure')
 const { readPassword, confirmPassword } = require('./lib/password')
 
 async function main () {
