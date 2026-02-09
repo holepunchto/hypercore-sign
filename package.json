@@ -6,6 +6,11 @@
   "files": [
     "index.js"
   ],
+  "bin": {
+    "hypercore-sign": "./bin.js",
+    "hypercore-verify": "./bin.js",
+    "hypercore-sign-generate-keys": "./bin.js"
+  },
   "scripts": {
     "lint": "prettier --check . && lunte",
     "format": "prettier --write . && lunte --fix",
