@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: holepunchto/actions/.github/steps/setup-repo@v1
       - run: npm i -g bare-runtime@latest
