@@ -1,48 +1,44 @@
 {
-  "name": "hypercore-sign",
-  "version": "3.0.0",
+  "name": "hypercore-sign-lib",
+  "version": "0.0.1",
   "description": "Sign Hypercores",
   "main": "index.js",
-  "scripts": {
-    "test": "standard && brittle test/*.js --coverage"
-  },
-  "bin": {
-    "hypercore-sign": "./sign.js",
-    "hypercore-verify": "./verify.js",
-    "hypercore-sign-generate-keys": "./generate-keys.js"
-  },
   "files": [
-    "index.js",
-    "sign.js",
-    "verify.js",
-    "generate-keys.js",
-    "lib/*.js"
+    "index.js"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/holepunchto/hypercore-sign.git"
+  "scripts": {
+    "lint": "prettier --check . && lunte",
+    "format": "prettier --write . && lunte --fix",
+    "test-bare": "brittle-bare -c test.js",
+    "test-node": "brittle -c test.js",
+    "test": "npm run lint && npm run test-bare && npm run test-node"
+  },
+  "dependencies": {
+    "hypercore-crypto": "^3.6.1",
+    "hypercore-signing-request": "^4.0.2",
+    "sodium-native": "^5.0.10",
+    "z32": "^1.1.0"
+  },
+  "devDependencies": {
+    "b4a": "^1.7.3",
+    "brittle": "^3.19.1",
+    "compact-encoding": "^2.18.0",
+    "corestore": "^7.8.0",
+    "hyperdht": "^6.29.0",
+    "hyperdrive": "^13.2.1",
+    "hyperswarm": "^4.16.0",
+    "lunte": "^1.6.0",
+    "prettier": "^3.8.1",
+    "prettier-config-holepunch": "^2.0.0"
   },
   "author": "Holepunch",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holepunchto/hypercore-sign-lib.git"
+  },
   "bugs": {
-    "url": "https://github.com/holepunchto/hypercore-sign/issues"
+    "url": "https://github.com/holepunchto/hypercore-sign-lib/issues"
   },
-  "homepage": "https://github.com/holepunchto/hypercore-sign#readme",
-  "dependencies": {
-    "compact-encoding": "^2.13.0",
-    "hypercore-crypto": "^3.5.0",
-    "hypercore-signing-request": "^4.0.0",
-    "secure-prompt": "^1.2.0",
-    "sodium-native": "^5.0.6",
-    "z32": "^1.0.1"
-  },
-  "devDependencies": {
-    "brittle": "^3.4.0",
-    "corestore": "^6.17.0",
-    "hypercore": "^10.32.8",
-    "hyperdrive": "^11.7.0",
-    "random-access-memory": "^6.2.0",
-    "standard": "^17.1.0",
-    "test-tmp": "^1.1.1"
-  }
+  "homepage": "https://github.com/holepunchto/hypercore-sign-lib#readme"
 }
