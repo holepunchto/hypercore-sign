@@ -18,12 +18,6 @@ npm i -g hypercore-sign
 
 - Run with [hypercore-sign-cli](https://github.com/holepunchto/hypercore-sign-cli)
 
-- API
-
-```js
-import { sign, verify } from 'hypercore-sign'
-```
-
 ## License
 
 Apache-2.0
