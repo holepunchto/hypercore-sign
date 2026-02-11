@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-console.log('This binary is deprecated. Use hypercore-sign-cli instead!')
-console.log(`
+console.error('This binary is deprecated. Use hypercore-sign-cli instead!')
+console.error(`
 npm uninstall -g hypercore-sign
 npm install -g hypercore-sign-cli
 `)
+exit(1)
