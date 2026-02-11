@@ -5,4 +5,4 @@ console.error(`
 npm uninstall -g hypercore-sign
 npm install -g hypercore-sign-cli
 `)
-exit(1)
+process.exit(1)
