@@ -23,7 +23,6 @@
     "hypercore-crypto": "^3.6.1",
     "hypercore-signing-request": "^4.0.2",
     "sodium-native": "^5.0.10",
-    "z32": "^1.1.0"
   },
   "devDependencies": {
     "b4a": "^1.7.3",

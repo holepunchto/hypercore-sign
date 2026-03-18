@@ -54,14 +54,8 @@ function sign(request, signer) {
   const password = sodium.sodium_malloc(8)
   sodium.randombytes_buf_deterministic(password, clonedSigner.seed)
 
-  const signatures = CoreSign.sign(signables, clonedSigner.secretKey, password)
+  const res = CoreSign.sign(request, clonedSigner.secretKey, password)
 
-  const res = cenc.encode(CoreSign.Response, {
-    version: decodedReq.version,
-    requestHash: crypto.hash(request),
-    publicKey: clonedSigner.publicKey,
-    signatures
-  })
   return z32.encode(res)
 }
 

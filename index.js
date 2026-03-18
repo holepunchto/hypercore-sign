@@ -2,121 +2,19 @@ const c = require('compact-encoding')
 const crypto = require('hypercore-crypto')
 const request = require('hypercore-signing-request')
 const sodium = require('sodium-native')
-const z32 = require('z32')
 
-const MAX_SUPPORTED_VERSION = 2
-
-const labelledKey = {
-  preencode(state, k) {
-    c.fixed(8).preencode(state, k.id)
-    c.fixed64.preencode(state, k.secretKey)
-  },
-  encode(state, k) {
-    c.fixed(8).encode(state, k.id)
-    c.fixed64.encode(state, k.secretKey)
-  },
-  decode(state) {
-    throw new Error('No decoder')
-  }
-}
-
-const keyDescriptor = {
-  preencode(state, s) {
-    c.fixed(8).preencode(state, s.id)
-    c.fixed64.preencode(state, s.secretKey)
-    c.fixed32.preencode(state, s.checkSum)
-  },
-  encode(state, s) {
-    c.fixed(8).encode(state, s.id)
-    c.fixed64.encode(state, s.secretKey)
-    c.fixed32.encode(state, s.checkSum)
-  },
-  decode(state) {
-    return {
-      id: c.fixed(8).decode(state),
-      secretKey: c.fixed64.decode(state),
-      checkSum: c.fixed32.decode(state)
-    }
-  }
-}
-
-const kdfParams = {
-  preencode(state, p) {
-    c.uint64.preencode(state, p.ops)
-    c.uint64.preencode(state, p.mem)
-  },
-  encode(state, p) {
-    c.uint64.encode(state, p.ops)
-    c.uint64.encode(state, p.mem)
-  },
-  decode(state) {
-    return {
-      ops: c.uint64.decode(state),
-      mem: c.uint64.decode(state)
-    }
-  }
-}
-
-const encryptedKey = {
-  preencode(state, s) {
-    kdfParams.preencode(state, s.params)
-    c.fixed32.preencode(state, s.salt)
-    c.buffer.preencode(state, s.payload)
-  },
-  encode(state, s) {
-    kdfParams.encode(state, s.params)
-    c.fixed32.encode(state, s.salt)
-    c.buffer.encode(state, s.payload)
-  },
-  decode(state) {
-    return {
-      params: kdfParams.decode(state),
-      salt: c.fixed32.decode(state),
-      payload: c.buffer.decode(state)
-    }
-  }
-}
-
-const signatures = c.array(c.fixed64)
-
-const Response = {
-  preencode(state, res) {
-    c.uint.preencode(state, res.version)
-    c.fixed32.preencode(state, res.requestHash)
-    c.fixed32.preencode(state, res.publicKey)
-    signatures.preencode(state, res.signatures)
-  },
-  encode(state, res) {
-    c.uint.encode(state, res.version)
-    c.fixed32.encode(state, res.requestHash)
-    c.fixed32.encode(state, res.publicKey)
-    signatures.encode(state, res.signatures)
-  },
-  decode(state, res) {
-    const version = c.uint.decode(state)
-
-    if (version > MAX_SUPPORTED_VERSION) {
-      throw new Error('Response version is not supported, please upgrade')
-    }
-
-    return {
-      version,
-      requestHash: c.fixed32.decode(state),
-      publicKey: c.fixed32.decode(state),
-      signatures: signatures.decode(state)
-    }
-  }
-}
+const { LabelledKey, KeyDescriptor, EncryptedKey, Response } = require('./lib/encoding.js')
+const { MAX_REQUEST_VERSION, MAX_KEY_VERSION } = require('./lib/constants.js')
 
 function generateKeys(pwd) {
   const id = Buffer.alloc(8)
 
   const publicKey = Buffer.alloc(sodium.crypto_sign_PUBLICKEYBYTES)
-  const secretKey = Buffer.alloc(sodium.crypto_sign_SECRETKEYBYTES)
-
   const salt = Buffer.alloc(32)
-  const kdfOutput = Buffer.alloc(8 + 64 + 32)
   const checkSum = Buffer.alloc(sodium.crypto_generichash_BYTES)
+
+  const secretKey = sodium.sodium_malloc(sodium.crypto_sign_SECRETKEYBYTES)
+  const kdfOutput = sodium.sodium_malloc(id.byteLength + secretKey.byteLength + checkSum.byteLength)
 
   const params = {
     ops: sodium.crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE,
@@ -128,34 +26,39 @@ function generateKeys(pwd) {
 
   sodium.crypto_sign_keypair(publicKey, secretKey)
 
-  const checkSumData = c.encode(labelledKey, { id, secretKey })
-
+  const checkSumData = c.encode(LabelledKey, { id, secretKey })
   sodium.crypto_generichash(checkSum, checkSumData)
-  sodium.sodium_memzero(checkSumData)
 
-  const payload = c.encode(keyDescriptor, {
+  free(checkSumData)
+
+  const payload = c.encode(KeyDescriptor, {
     id,
     secretKey,
     checkSum
   })
 
-  sodium.sodium_memzero(secretKey)
+  free(secretKey)
 
   sodium.sodium_mprotect_readwrite(pwd)
   sodium.crypto_pwhash_scryptsalsa208sha256(kdfOutput, pwd, salt, params.ops, params.mem)
-  sodium.sodium_memzero(pwd)
-  sodium.sodium_free(pwd)
 
-  xor(payload, kdfOutput)
-  sodium.sodium_memzero(kdfOutput)
+  free(pwd)
 
-  const encrypted = c.encode(encryptedKey, {
+  try {
+    xor(payload, kdfOutput)
+  } finally {
+    free(kdfOutput)
+  }
+
+  const encrypted = c.encode(EncryptedKey, {
+    version: MAX_KEY_VERSION,
     params,
     salt,
-    payload
+    payload,
+    publicKey
   })
 
-  sodium.sodium_memzero(payload)
+  free(payload)
 
   return {
     id,
@@ -164,76 +67,92 @@ function generateKeys(pwd) {
   }
 }
 
-function sign(signables, keyBuffer, pwd) {
-  const { params, salt, payload } = c.decode(encryptedKey, keyBuffer)
-
-  const kdfOutput = Buffer.alloc(8 + 64 + 32)
-
-  sodium.sodium_mprotect_readwrite(pwd)
-  sodium.crypto_pwhash_scryptsalsa208sha256(kdfOutput, pwd, salt, params.ops, params.mem)
-  sodium.sodium_memzero(pwd)
-  sodium.sodium_free(pwd)
-
-  xor(payload, kdfOutput)
-  sodium.sodium_memzero(kdfOutput)
-
-  const { id, secretKey, checkSum } = c.decode(keyDescriptor, payload)
-
-  const checkAgainst = Buffer.alloc(sodium.crypto_generichash_BYTES)
-  const checkSumData = c.encode(labelledKey, { id, secretKey })
-
-  sodium.crypto_generichash(checkAgainst, checkSumData)
-  sodium.sodium_memzero(checkSumData)
-
-  if (Buffer.compare(checkAgainst, checkSum) !== 0) {
-    sodium.sodium_memzero(secretKey)
-    sodium.sodium_memzero(payload)
-    throw new Error('Key decryption failed')
-  }
-
-  const signatures = []
-  for (const { signable } of signables) {
-    const signature = Buffer.alloc(sodium.crypto_sign_BYTES)
-    sodium.crypto_sign_detached(signature, signable, secretKey)
-    signatures.push(signature)
-  }
-
-  sodium.sodium_memzero(secretKey)
-  sodium.sodium_memzero(payload)
-
-  return signatures
-}
-
-function xor(a, b) {
-  if (a.byteLength !== b.byteLength) {
-    throw new Error('Buffers should be equal in size')
-  }
-
-  for (let i = 0; i < a.length; i++) {
-    a[i] ^= b[i]
-  }
-}
-
-function verify(response, signingRequest, pubkey) {
-  const res = c.decode(Response, z32.decode(response))
-  const publicKey = z32.decode(pubkey)
-
-  if (!response || !signingRequest || !pubkey) {
-    throw new Error('Invalid arguments')
-  }
-
+function sign(signingRequest, keyBuffer, pwd) {
   let req = null
   try {
-    req = request.decode(z32.decode(signingRequest))
+    req = request.decode(signingRequest)
   } catch (e) {
     throw new Error('Invalid signing request')
   }
 
-  if (req.version > MAX_SUPPORTED_VERSION) {
+  if (req.version > MAX_REQUEST_VERSION) {
     throw new Error('Request version not supported, please update')
   }
 
-  if (Buffer.compare(res.requestHash, crypto.hash(z32.decode(signingRequest))) !== 0) {
+  const requestHash = crypto.hash(signingRequest)
+
+  const { version, params, salt, payload, publicKey } = c.decode(EncryptedKey, keyBuffer)
+
+  if (version > MAX_KEY_VERSION) {
+    throw new Error('Key version not supported, please update')
+  }
+
+  const kdfOutput = sodium.sodium_malloc(payload.byteLength)
+
+  sodium.sodium_mprotect_readwrite(pwd)
+  sodium.sodium_mprotect_readwrite(kdfOutput)
+
+  try {
+    sodium.crypto_pwhash_scryptsalsa208sha256(kdfOutput, pwd, salt, params.ops, params.mem)
+
+    xor(payload, kdfOutput)
+  } finally {
+    free(pwd)
+    free(kdfOutput)
+  }
+
+  const { id, secretKey, checkSum } = c.decode(KeyDescriptor, payload)
+
+  const checkAgainst = Buffer.alloc(sodium.crypto_generichash_BYTES)
+  const checkSumData = c.encode(LabelledKey, { id, secretKey })
+
+  sodium.crypto_generichash(checkAgainst, checkSumData)
+  free(checkSumData)
+
+  try {
+    if (Buffer.compare(checkAgainst, checkSum) !== 0) {
+      throw new Error('Key decryption failed')
+    }
+
+    const signables = request.signable(publicKey, req)
+
+    const signatures = []
+    for (const { signable } of signables) {
+      const signature = Buffer.alloc(sodium.crypto_sign_BYTES)
+      sodium.crypto_sign_detached(signature, signable, secretKey)
+      signatures.push(signature)
+    }
+
+    const response = c.encode(Response, {
+      version: req.version,
+      requestHash,
+      publicKey,
+      signatures
+    })
+
+    return response
+  } finally {
+    free(secretKey)
+    free(payload)
+  }
+}
+
+function verify(response, signingRequest, publicKey) {
+  let req = null
+  let res = null
+
+  try {
+    req = request.decode(signingRequest)
+    res = c.decode(Response, response)
+  } catch (e) {
+    throw new Error('Invalid signing request or response')
+  }
+
+  if (req.version > MAX_REQUEST_VERSION) {
+    throw new Error('Request version not supported, please update')
+  }
+
+  if (Buffer.compare(res.requestHash, crypto.hash(signingRequest)) !== 0) {
     throw new Error('Signature was not made over this request')
   }
 
@@ -256,10 +175,26 @@ function verify(response, signingRequest, pubkey) {
   return req
 }
 
+function free(buffer) {
+  sodium.sodium_memzero(buffer)
+  sodium.sodium_free(buffer)
+}
+
+function xor(a, b) {
+  if (a.byteLength !== b.byteLength) {
+    throw new Error('Buffers should be equal in size')
+  }
+
+  for (let i = 0; i < a.length; i++) {
+    a[i] ^= b[i]
+  }
+}
+
 module.exports = {
-  MAX_SUPPORTED_VERSION,
+  MAX_SUPPORTED_VERSION: MAX_REQUEST_VERSION,
   Response,
   generateKeys,
   sign,
-  verify
+  verify,
+  free
 }
