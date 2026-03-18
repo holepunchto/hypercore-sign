@@ -22,7 +22,7 @@
     "compact-encoding": "^2.18.0",
     "hypercore-crypto": "^3.6.1",
     "hypercore-signing-request": "^4.0.2",
-    "sodium-native": "^5.0.10",
+    "sodium-native": "^5.0.10"
   },
   "devDependencies": {
     "b4a": "^1.7.3",
