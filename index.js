@@ -40,9 +40,12 @@ function generateKeys(pwd) {
   free(secretKey)
 
   sodium.sodium_mprotect_readwrite(pwd)
-  sodium.crypto_pwhash_scryptsalsa208sha256(kdfOutput, pwd, salt, params.ops, params.mem)
 
-  free(pwd)
+  try {
+    sodium.crypto_pwhash_scryptsalsa208sha256(kdfOutput, pwd, salt, params.ops, params.mem)
+  } finally {
+    free(pwd)
+  }
 
   try {
     xor(payload, kdfOutput)
@@ -71,19 +74,30 @@ function sign(signingRequest, keyBuffer, pwd) {
   let req = null
   try {
     req = request.decode(signingRequest)
-  } catch (e) {
+  } catch {
+    free(pwd)
     throw new Error('Invalid signing request')
   }
 
   if (req.version > MAX_REQUEST_VERSION) {
+    free(pwd)
     throw new Error('Request version not supported, please update')
   }
 
   const requestHash = crypto.hash(signingRequest)
 
-  const { version, params, salt, payload, publicKey } = c.decode(EncryptedKey, keyBuffer)
+  let key = null
+  try {
+    key = c.decode(EncryptedKey, keyBuffer)
+  } catch {
+    free(pwd)
+    throw new Error('Invalid key')
+  }
+
+  const { version, params, salt, payload, publicKey } = key
 
   if (version > MAX_KEY_VERSION) {
+    free(pwd)
     throw new Error('Key version not supported, please update')
   }
 
@@ -106,10 +120,9 @@ function sign(signingRequest, keyBuffer, pwd) {
   const checkAgainst = Buffer.alloc(sodium.crypto_generichash_BYTES)
   const checkSumData = c.encode(LabelledKey, { id, secretKey })
 
-  sodium.crypto_generichash(checkAgainst, checkSumData)
-  free(checkSumData)
-
   try {
+    sodium.crypto_generichash(checkAgainst, checkSumData)
+
     if (Buffer.compare(checkAgainst, checkSum) !== 0) {
       throw new Error('Key decryption failed')
     }
@@ -132,6 +145,7 @@ function sign(signingRequest, keyBuffer, pwd) {
 
     return response
   } finally {
+    free(checkSumData)
     free(secretKey)
     free(payload)
   }
