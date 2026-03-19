@@ -4,6 +4,7 @@
   "description": "Sign Hypercores",
   "main": "index.js",
   "files": [
+    "lib/",
     "index.js"
   ],
   "bin": {
