@@ -22,7 +22,7 @@
   "dependencies": {
     "compact-encoding": "^2.18.0",
     "hypercore-crypto": "^3.6.1",
-    "hypercore-signing-request": "^4.0.2",
+    "hypercore-signing-request": "^5.0.0",
     "sodium-native": "^5.0.10"
   },
   "devDependencies": {
