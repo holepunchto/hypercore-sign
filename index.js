@@ -74,9 +74,9 @@ function sign(signingRequest, keyBuffer, pwd) {
   let req = null
   try {
     req = request.decode(signingRequest)
-  } catch {
+  } catch (err) {
     free(pwd)
-    throw new Error('Invalid signing request')
+    throw new Error('Invalid signing request', { cause: err })
   }
 
   const requestHash = crypto.hash(signingRequest)
@@ -151,8 +151,8 @@ function verify(response, signingRequest, publicKey) {
   try {
     req = request.decode(signingRequest)
     res = request.decodeResponse(response)
-  } catch (e) {
-    throw new Error('Invalid signing request or response')
+  } catch (err) {
+    throw new Error('Invalid data', { cause: err })
   }
 
   if (Buffer.compare(res.requestHash, crypto.hash(signingRequest)) !== 0) {
