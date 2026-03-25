@@ -3,8 +3,8 @@ const crypto = require('hypercore-crypto')
 const request = require('hypercore-signing-request')
 const sodium = require('sodium-native')
 
-const { LabelledKey, KeyDescriptor, EncryptedKey, Response } = require('./lib/encoding.js')
-const { MAX_REQUEST_VERSION, MAX_KEY_VERSION } = require('./lib/constants.js')
+const { LabelledKey, KeyDescriptor, EncryptedKey } = require('./lib/encoding.js')
+const { MAX_KEY_VERSION } = require('./lib/constants.js')
 
 function generateKeys(pwd) {
   const id = Buffer.alloc(8)
@@ -74,14 +74,9 @@ function sign(signingRequest, keyBuffer, pwd) {
   let req = null
   try {
     req = request.decode(signingRequest)
-  } catch {
+  } catch (err) {
     free(pwd)
-    throw new Error('Invalid signing request')
-  }
-
-  if (req.version > MAX_REQUEST_VERSION) {
-    free(pwd)
-    throw new Error('Request version not supported, please update')
+    throw new Error('Invalid signing request', { cause: err })
   }
 
   const requestHash = crypto.hash(signingRequest)
@@ -136,14 +131,12 @@ function sign(signingRequest, keyBuffer, pwd) {
       signatures.push(signature)
     }
 
-    const response = c.encode(Response, {
+    return request.encodeResponse({
       version: req.version,
       requestHash,
       publicKey,
       signatures
     })
-
-    return response
   } finally {
     free(checkSumData)
     free(secretKey)
@@ -157,13 +150,9 @@ function verify(response, signingRequest, publicKey) {
 
   try {
     req = request.decode(signingRequest)
-    res = c.decode(Response, response)
-  } catch (e) {
-    throw new Error('Invalid signing request or response')
-  }
-
-  if (req.version > MAX_REQUEST_VERSION) {
-    throw new Error('Request version not supported, please update')
+    res = request.decodeResponse(response)
+  } catch (err) {
+    throw new Error('Invalid data', { cause: err })
   }
 
   if (Buffer.compare(res.requestHash, crypto.hash(signingRequest)) !== 0) {
@@ -205,8 +194,6 @@ function xor(a, b) {
 }
 
 module.exports = {
-  MAX_SUPPORTED_VERSION: MAX_REQUEST_VERSION,
-  Response,
   generateKeys,
   sign,
   verify,
