@@ -21,8 +21,16 @@ test('sign a core and verify', async (t) => {
   const { store } = await setupReplication(t)
 
   const request = await getSigningRequest(signers, store)
+
+  t.ok(CoreSign.isRequest(request))
+  t.absent(CoreSign.isResponse(request))
+
   const response = sign(request, signers[0])
+
   t.ok(response, 'should have response')
+  t.absent(CoreSign.isRequest(response))
+  t.ok(CoreSign.isResponse(response))
+
   CoreSign.verify(response, request, signers[0].publicKey)
   t.pass('should verify signing request')
 })
@@ -32,8 +40,16 @@ test('sign a drive and verify', async (t) => {
   const { store } = await setupReplication(t)
 
   const request = await getDriveSigningRequest(signers, store)
+
+  t.ok(CoreSign.isRequest(request))
+  t.absent(CoreSign.isResponse(request))
+
   const response = sign(request, signers[0])
+
   t.ok(response, 'should have response')
+  t.absent(CoreSign.isRequest(response))
+  t.ok(CoreSign.isResponse(response))
+
   CoreSign.verify(response, request, signers[0].publicKey)
   t.pass('should verify drive signing request')
 })

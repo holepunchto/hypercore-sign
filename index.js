@@ -197,5 +197,7 @@ module.exports = {
   generateKeys,
   sign,
   verify,
-  free
+  free,
+  isRequest: request.isRequest,
+  isResponse: request.isResponse
 }
