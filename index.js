@@ -89,7 +89,7 @@ function sign(signingRequest, keyBuffer, pwd, publicKey = null) {
     throw new Error('Invalid key')
   }
 
-  const { version, params, salt, payload, publicKey } = key
+  const { version, params, salt, payload } = key
 
   // version >= 1 has public key stored inline
   if (version > COMPAT_VERSION) publicKey = key.publicKey
