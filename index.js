@@ -182,6 +182,7 @@ function verify(response, signingRequest, publicKey) {
 }
 
 function free(buffer) {
+  if (buffer.secure) sodium.sodium_mprotect_readwrite(buffer)
   sodium.sodium_memzero(buffer)
   sodium.sodium_free(buffer)
 }
