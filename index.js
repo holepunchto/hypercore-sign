@@ -4,7 +4,7 @@ const request = require('hypercore-signing-request')
 const sodium = require('sodium-native')
 
 const { LabelledKey, KeyDescriptor, EncryptedKey } = require('./lib/encoding.js')
-const { MAX_KEY_VERSION } = require('./lib/constants.js')
+const { COMPAT_VERSION, MAX_KEY_VERSION } = require('./lib/constants.js')
 
 function generateKeys(pwd) {
   const id = Buffer.alloc(8)
@@ -70,7 +70,7 @@ function generateKeys(pwd) {
   }
 }
 
-function sign(signingRequest, keyBuffer, pwd) {
+function sign(signingRequest, keyBuffer, pwd, publicKey = null) {
   let req = null
   try {
     req = request.decode(signingRequest)
@@ -90,6 +90,9 @@ function sign(signingRequest, keyBuffer, pwd) {
   }
 
   const { version, params, salt, payload, publicKey } = key
+
+  // version >= 1 has public key stored inline
+  if (version > COMPAT_VERSION) publicKey = key.publicKey
 
   if (version > MAX_KEY_VERSION) {
     free(pwd)
