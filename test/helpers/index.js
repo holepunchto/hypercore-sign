@@ -1,8 +1,8 @@
 const Hypercore = require('hypercore')
 const Hyperdrive = require('hyperdrive')
 const Corestore = require('corestore')
+const crypto = require('hypercore-crypto')
 const { generate } = require('hypercore-signing-request')
-const RAM = require('random-access-memory')
 const z32 = require('z32')
 const b4a = require('b4a')
 
@@ -17,7 +17,9 @@ async function getSigningRequest(z32publicKey, t) {
   const namespace = b4a.alloc(32, 1)
   const publicKey = z32.decode(z32publicKey)
 
-  const core = new Hypercore(RAM.reusable(), {
+  const src = new Hypercore(await t.tmp())
+
+  const core = new Hypercore(await t.tmp(), {
     compat: false,
     manifest: {
       version: 1,
@@ -28,23 +30,22 @@ async function getSigningRequest(z32publicKey, t) {
 
   t.teardown(async () => {
     await core.close()
+    await src.close()
   })
 
   await core.ready()
+  await src.ready()
 
-  const batch = core.batch()
-  await batch.ready()
+  await src.append('Block 0')
+  await src.append('Block 1')
 
-  await batch.append('Block 0')
-  await batch.append('Block 1')
-  await batch.flush({ keyPair: null })
+  const request = await generate(src, { manifest: core.manifest })
 
-  const request = await generate(batch)
   return {
     request: z32.encode(request),
-    verify({ signature }) {
-      const b = batch.createTreeBatch()
-      return core.core.tree.crypto.verify(b.signable(batch.key), signature, publicKey)
+    verify(signature) {
+      const b = src.state.createTreeBatch()
+      return crypto.verify(b.signable(core.key), signature, publicKey)
     }
   }
 }
@@ -52,7 +53,10 @@ async function getSigningRequest(z32publicKey, t) {
 async function getDriveSigningRequest(z32publicKey, t) {
   const publicKey = z32.decode(z32publicKey)
 
-  const store = new Corestore(RAM.reusable(), { manifestVersion: 1, compat: false })
+  const store = new Corestore(await t.tmp(), {
+    manifestVersion: 1,
+    compat: false
+  })
   const drive = new Hyperdrive(store)
 
   t.teardown(async () => {
@@ -78,16 +82,12 @@ async function getDriveSigningRequest(z32publicKey, t) {
   return {
     request: z32.encode(request),
     verify([metadata, content]) {
-      const b1 = drive.core.createTreeBatch()
-      const b2 = drive.blobs.core.createTreeBatch()
+      const b1 = drive.core.state.createTreeBatch()
+      const b2 = drive.blobs.core.state.createTreeBatch()
 
       return (
-        drive.core.core.tree.crypto.verify(
-          b1.signable(metadataKey),
-          metadata.signature,
-          publicKey
-        ) &&
-        drive.core.core.tree.crypto.verify(b2.signable(contentKey), content.signature, publicKey)
+        crypto.verify(b1.signable(metadataKey), metadata, publicKey) &&
+        crypto.verify(b2.signable(contentKey), content, publicKey)
       )
     }
   }

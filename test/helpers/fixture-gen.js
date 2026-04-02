@@ -18,8 +18,6 @@ const corePath = path.join(fixtures, 'requests', prefix + '.core')
 const drivePath = path.join(fixtures, 'requests', prefix + '.drive')
 
 test('generate fixture', async (t) => {
-  t.plan(2)
-
   if (!name) {
     throw new Error('fixture name should be specified')
   }
@@ -39,8 +37,6 @@ test('generate fixture', async (t) => {
 })
 
 test('generate responses', async (t) => {
-  t.plan(2)
-
   if (!fs.existsSync(corePath) || !fs.existsSync(drivePath)) {
     t.fail('No fixture exists, have they been generated?')
     process.exit(1)
@@ -53,8 +49,12 @@ test('generate responses', async (t) => {
 
   t.teardown(() => proc.kill('SIGKILL'))
 
+  let oncoredone
+  const coreDone = new Promise((resolve) => (oncoredone = resolve))
+
   proc.on('close', (code) => {
     t.is(code, 0, '0 status code for message signing process')
+    oncoredone()
   })
 
   proc.stdout.on('data', (bufferData) => {
@@ -80,8 +80,12 @@ test('generate responses', async (t) => {
 
   t.teardown(() => proc2.kill('SIGKILL'))
 
+  let ondrivedone
+  const driveDone = new Promise((resolve) => (ondrivedone = resolve))
+
   proc2.on('close', (code) => {
     t.is(code, 0, '0 status code for message signing process')
+    ondrivedone()
   })
 
   proc2.stdout.on('data', (bufferData) => {
@@ -102,4 +106,6 @@ test('generate responses', async (t) => {
       fs.writeFileSync(path.join(fixtures, 'responses', prefix + '.drive'), response, 'utf8')
     }
   })
+
+  await Promise.all([coreDone, driveDone])
 })

@@ -37,10 +37,10 @@
   },
   "devDependencies": {
     "brittle": "^3.4.0",
-    "corestore": "^6.17.0",
     "compact-encoding": "^2.13.0",
-    "hypercore": "^10.32.8",
-    "hyperdrive": "^11.7.0",
+    "corestore": "^7.9.2",
+    "hypercore": "^11.28.1",
+    "hyperdrive": "^13.3.2",
     "lunte": "^1.6.0",
     "prettier": "^3.8.1",
     "prettier-config-holepunch": "^2.0.0",

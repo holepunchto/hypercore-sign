@@ -237,7 +237,7 @@ test('add - verify', async (t) => {
   await t1
 
   const t2 = t.test()
-  t2.plan(4)
+  t2.plan(3)
 
   const v = spawn('node', ['./bin/cli.js', 'verify', response, request, '-d', storageDir])
 
@@ -256,8 +256,7 @@ test('add - verify', async (t) => {
   v.on('close', (code) => {
     t2.is(code, 0, 'Successfully signed request')
     t2.ok(message.includes('Signature verified'))
-    t2.ok(message.includes('Signed by known peer'))
-    t2.ok(message.includes(savePath))
+    t2.ok(message.includes('Signed by known peer: "default"'))
   })
 })
 
@@ -311,7 +310,7 @@ test('add - under different name', async (t) => {
   await t1
 
   const t2 = t.test()
-  t2.plan(4)
+  t2.plan(3)
 
   const v = spawn('node', ['./bin/cli.js', 'verify', response, request, '-d', storageDir])
 
@@ -330,8 +329,7 @@ test('add - under different name', async (t) => {
   v.on('close', (code) => {
     t2.is(code, 0, 'Successfully signed request')
     t2.ok(message.includes('Signature verified'))
-    t2.ok(message.includes('Signed by known peer'))
-    t2.ok(message.includes(savePath))
+    t2.ok(message.includes('Signed by known peer: "test"'))
   })
 })
 

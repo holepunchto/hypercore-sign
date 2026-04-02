@@ -85,11 +85,11 @@ test('e2e - sign a core', async (t) => {
   await t3
 
   // verify against actual core
-  const { signatures } = hypercoreRequest.decode(z32.decode(response))
+  const { signatures } = hypercoreRequest.decodeResponse(z32.decode(response))
   t.ok(verify(signatures[0]))
 
   // sanity check
-  signatures[0].signature.fill(0)
+  signatures[0].fill(0)
   t.absent(verify(signatures[0]))
 })
 
@@ -168,11 +168,11 @@ test('e2e - sign a drive', async (t) => {
   await t3
 
   // verify against actual core
-  const { signatures } = hypercoreRequest.decode(z32.decode(response))
+  const { signatures } = hypercoreRequest.decodeResponse(z32.decode(response))
   t.ok(verify(signatures))
 
   // sanity check
-  signatures[0].signature.fill(0)
+  signatures[0].fill(0)
   t.absent(verify(signatures))
 })
 

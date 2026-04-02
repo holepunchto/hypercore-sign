@@ -55,7 +55,7 @@ async function generator(dir) {
     process.exit(1)
   }
 
-  const { secretKey, publicKey } = generateKeys(password)
+  const { secretKey, publicKey } = await generateKeys(password)
 
   // Prompt a confirmation when overwriting
   // (Because you probably don't want to overwrite these,
@@ -109,8 +109,6 @@ async function signer(signingRequest, keyPath) {
   const secretKey = z32.decode(await fsProm.readFile(secretKeyPath, 'utf-8'))
   const publicKey = z32.decode(await fsProm.readFile(publicKeyPath, 'utf-8'))
 
-  const signables = hypercoreRequest.signable(publicKey, req)
-
   console.log(`\nSigning with ${secretKeyPath}\n`)
   if (!(await userConfirm())) {
     console.error('\nRequest aborted.')
@@ -122,14 +120,7 @@ async function signer(signingRequest, keyPath) {
   await new Promise(setImmediate)
 
   const password = await readPassword()
-  const signatures = sign(signables, secretKey, password)
-
-  const response = hypercoreRequest.encodeResponse({
-    version: req.version,
-    requestHash: crypto.hash(request),
-    publicKey,
-    signatures
-  })
+  const response = await sign(z32.decode(signingRequest), secretKey, password, publicKey)
 
   console.log(`\nSigned with public key:\n\n${z32.encode(publicKey)}`)
   console.log(`\nReply with:\n\n${z32.encode(response)}`)
@@ -165,7 +156,7 @@ async function verifier(response, signingRequest, pubkey) {
     }
 
     if (stat.isFile()) {
-      known = keyPath
+      known = getKnownPeerName(keyPath)
       pubkey = await fsProm.readFile(keyPath, 'utf8')
     } else if (stat.isDirectory()) {
       known = false
@@ -177,7 +168,7 @@ async function verifier(response, signingRequest, pubkey) {
         const keyFile = path.join(keyPath, file)
         const peer = await fsProm.readFile(keyFile, 'utf8')
         if (peer === check) {
-          known = keyFile
+          known = getKnownPeerName(keyFile)
           pubkey = peer
           break
         }
@@ -193,10 +184,10 @@ async function verifier(response, signingRequest, pubkey) {
   const publicKey = z32.decode(pubkey)
 
   // throws
-  verify(z32.decode(response), z32.deocde(signingRequest), z32.decode(pubkey))
+  verify(z32.decode(response), z32.decode(signingRequest), z32.decode(pubkey))
 
   console.log('\nSignature verified.')
-  if (known) console.log(`\n${pubkey} (${known}) signed the following request:`)
+  if (known) console.log(`\nSigned by known peer: "${known}"`)
   else console.log(`\n${pubkey} signed the following request:`)
 
   console.log({
@@ -238,4 +229,8 @@ async function add(pubkey, dir, name) {
   console.log(`Public key saved as ${keyPath}`)
   console.log()
   console.log('Public key is', z32.encode(publicKey))
+}
+
+function getKnownPeerName(fileName) {
+  return path.parse(fileName).name
 }
