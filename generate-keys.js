@@ -9,12 +9,8 @@ const z32 = require('z32')
 
 const homeDir = os.homedir()
 
-// fs permissions
-const USER_ONLY_R = 0o400
-const USER_ONLY_RW = 0o600
-const USER_ONLY_RWX = 0o700
-
 const { readPassword, confirmPassword } = require('./lib/password')
+const { USER_ONLY_R, USER_ONLY_RW, USER_ONLY_RWX } = require('./lib/permissions')
 
 async function main() {
   const dir = process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')

@@ -1,10 +1,12 @@
 const fs = require('fs/promises')
 const path = require('path')
 const test = require('brittle')
+const tmpDir = require('test-tmp')
 const Hypercore = require('hypercore')
 const crypto = require('hypercore-crypto')
 const Hyperdrive = require('hyperdrive')
 const Corestore = require('corestore')
+const { getKeyInfo } = require('hypercore-sign-lib')
 const { generate, decodeResponse } = require('hypercore-signing-request')
 const { spawn } = require('child_process')
 const b4a = require('b4a')
@@ -285,7 +287,6 @@ test('e2e - sign a drive', async (t) => {
   }
 })
 
-// TODO: fix compat issue
 test('e2e - v1 fixture', async (t) => {
   t.plan(3)
 
@@ -337,7 +338,6 @@ test('e2e - v1 fixture', async (t) => {
   })
 })
 
-// TODO: fix compat issue
 test('e2e - v2 fixture', async (t) => {
   t.plan(3)
 
@@ -389,7 +389,6 @@ test('e2e - v2 fixture', async (t) => {
   })
 })
 
-// TODO: fix compat issue
 test('e2e - v2 drive fixture', async (t) => {
   t.plan(3)
 
@@ -441,6 +440,85 @@ test('e2e - v2 drive fixture', async (t) => {
     console.error(data.toString())
     t.fail('sign errored')
   })
+})
+
+test('e2e - migrate legacy keys', async (t) => {
+  t.plan(4)
+
+  const dir = await tmpDir(t)
+
+  const request = await fs.readFile(
+    path.join(__dirname, 'fixtures', 'requests', 'v2-drive.request'),
+    'utf8'
+  )
+
+  await fs.cp(
+    path.join(__dirname, 'fixtures', 'keys', 'default.v0'),
+    path.join(dir, 'keys', 'default')
+  )
+  await fs.cp(
+    path.join(__dirname, 'fixtures', 'keys', 'default.public'),
+    path.join(dir, 'keys', 'default.public')
+  )
+
+  const env = {
+    ...process.env,
+    HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(dir, 'keys')
+  }
+
+  const legacyKey = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  const legacyInfo = getKeyInfo(z32.decode(legacyKey))
+
+  t.is(legacyInfo.version, 0)
+
+  const proc = spawn('node', ['sign.js', request], { env })
+
+  t.teardown(() => proc.kill('SIGKILL'))
+
+  let ondone = null
+  const done = new Promise((resolve) => (ondone = resolve))
+
+  proc.on('close', (code) => {
+    t.is(code, 0, '0 status code for message signing process')
+    ondone()
+  })
+
+  proc.stdout.on('data', (bufferData) => {
+    const data = bufferData.toString().toLowerCase()
+    if (DEBUG_LOG) console.log('[sign]', data)
+
+    if (data.includes('upgrade')) {
+      t.pass()
+      // Enter the password
+      proc.stdin.write('y\n')
+    }
+
+    if (data.includes('confirm?')) {
+      // Enter the password
+      proc.stdin.write('y\n')
+    }
+
+    if (data.includes('password')) {
+      // Enter the password
+      proc.stdin.write('password')
+    }
+
+    if (data.includes('reply with:')) {
+      t.fail()
+    }
+  })
+
+  proc.stderr.on('data', (data) => {
+    console.error(data.toString())
+    t.fail('sign errored')
+  })
+
+  await done
+
+  const key = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  const info = getKeyInfo(z32.decode(key))
+
+  t.is(info.version, 1)
 })
 
 async function getSigningRequest(z32publicKey, t) {

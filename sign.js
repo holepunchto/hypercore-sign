@@ -4,14 +4,18 @@ const path = require('path')
 const fsProm = require('fs/promises')
 const os = require('os')
 const readline = require('readline')
-const { MAX_SUPPORTED_VERSION, sign } = require('hypercore-sign-lib')
+const { MAX_SUPPORTED_VERSION, sign, getKeyInfo } = require('hypercore-sign-lib')
 const request = require('hypercore-signing-request')
 const z32 = require('z32')
 
 const { version } = require('./package.json')
 const { readPassword } = require('./lib/password')
+const { USER_ONLY_R } = require('./lib/permissions')
+const { migrateV3 } = require('./migrations/v3')
 
 const homeDir = os.homedir()
+
+const V3_KEY_VERSION = 0 // legacy key version
 
 async function main() {
   const signingRequest = process.argv[2]
@@ -27,6 +31,29 @@ async function main() {
 
   const secretKeyPath = path.join(keysDir, 'default')
   const publicKeyPath = path.join(keysDir, 'default.public')
+
+  const secretKey = z32.decode(await fsProm.readFile(secretKeyPath, 'utf-8'))
+  const publicKey = z32.decode(await fsProm.readFile(publicKeyPath, 'utf-8'))
+
+  const info = getKeyInfo(secretKey)
+
+  if (info.version === V3_KEY_VERSION) {
+    console.log('Found legacy key at:', secretKeyPath)
+    if (await userConfirm('Would you like to upgrade? [y/N]')) {
+      console.log('Migrating keys...')
+
+      await new Promise(setImmediate)
+      const migrated = await migrateV3(secretKey, publicKey)
+
+      console.log('Writing new keys to:', secretKeyPath)
+      await fsProm.writeFile(secretKeyPath, migrated, {
+        mode: USER_ONLY_R
+      })
+
+      console.log('Keys migrated successfully. Please run your request again.')
+      process.exit(0)
+    }
+  }
 
   let req = null
   try {
@@ -57,9 +84,6 @@ async function main() {
 
   console.log('\nRequest data is confirmed')
   console.log('Proceeding to sign...')
-
-  const secretKey = z32.decode(await fsProm.readFile(secretKeyPath, 'utf-8'))
-  const publicKey = z32.decode(await fsProm.readFile(publicKeyPath, 'utf-8'))
 
   console.log(`\nSigning with ${secretKeyPath}\n`)
   if (!(await userConfirm())) {
