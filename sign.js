@@ -10,7 +10,7 @@ const z32 = require('z32')
 
 const { version } = require('./package.json')
 const { readPassword } = require('./lib/password')
-const { USER_ONLY_R } = require('./lib/permissions')
+const { USER_ONLY_R, USER_ONLY_RW } = require('./lib/permissions')
 const { migrateV3 } = require('./migrations/v3')
 
 const homeDir = os.homedir()
@@ -45,10 +45,16 @@ async function main() {
       await new Promise(setImmediate)
       const migrated = await migrateV3(secretKey, publicKey)
 
+      // So we can write to it
+      await fsProm.chmod(secretKeyPath, USER_ONLY_RW)
+
       console.log('Writing new keys to:', secretKeyPath)
       await fsProm.writeFile(secretKeyPath, migrated, {
         mode: USER_ONLY_R
       })
+
+      // Permissions are only applied if it's a new file, so if we overwrote an existing file:
+      await fsProm.chmod(secretKeyPath, USER_ONLY_R)
 
       console.log('Keys migrated successfully. Please run your request again.')
       process.exit(0)
