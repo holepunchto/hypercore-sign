@@ -33,6 +33,8 @@ async function main() {
   const secretKeyPath = path.join(keysDir, 'default')
   const publicKeyPath = path.join(keysDir, 'default.public')
 
+  console.log('Using keys from directory:', keysDir, '\n')
+
   const secretKey = z32.decode(await fsProm.readFile(secretKeyPath, 'utf-8'))
   const publicKey = z32.decode(await fsProm.readFile(publicKeyPath, 'utf-8'))
 
