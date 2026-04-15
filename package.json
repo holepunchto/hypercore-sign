@@ -2,36 +2,38 @@
   "name": "hypercore-sign",
   "version": "4.1.1",
   "description": "Sign Hypercores",
-  "main": "index.js",
+  "main": "sign.js",
   "files": [
     "lib/",
-    "index.js"
+    "migrations/",
+    "sign.js",
+    "verify.js",
+    "generate-keys.js"
   ],
   "bin": {
-    "hypercore-sign": "./bin.js",
-    "hypercore-verify": "./bin.js",
-    "hypercore-sign-generate-keys": "./bin.js"
+    "hypercore-sign": "./sign.js",
+    "hypercore-verify": "./verify.js",
+    "hypercore-sign-generate-keys": "./generate-keys.js"
   },
   "scripts": {
     "lint": "prettier --check . && lunte",
     "format": "prettier --write . && lunte --fix",
-    "test-bare": "brittle-bare -c test.js",
-    "test-node": "brittle -c test.js",
-    "test": "npm run lint && npm run test-bare && npm run test-node"
+    "test-node": "brittle -c test/*.js",
+    "test": "npm run lint && npm run test-node"
   },
   "dependencies": {
-    "compact-encoding": "^2.18.0",
-    "hypercore-crypto": "^3.6.1",
+    "hypercore-sign-lib": "^1.0.0",
     "hypercore-signing-request": "^5.0.1",
-    "sodium-native": "^5.0.10"
+    "secure-prompt": "^1.2.0",
+    "sodium-native": "^5.0.10",
+    "z32": "^1.1.0"
   },
   "devDependencies": {
     "b4a": "^1.7.3",
     "brittle": "^3.19.1",
     "corestore": "^7.8.0",
-    "hyperdht": "^6.29.0",
+    "hypercore": "^11.28.1",
     "hyperdrive": "^13.2.1",
-    "hyperswarm": "^4.16.0",
     "lunte": "^1.6.0",
     "prettier": "^3.8.1",
     "prettier-config-holepunch": "^2.0.0"
