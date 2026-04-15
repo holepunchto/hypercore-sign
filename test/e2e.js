@@ -440,7 +440,7 @@ test('e2e - v2 drive fixture', async (t) => {
   })
 })
 
-test.solo('e2e - migrate legacy keys', async (t) => {
+test('e2e - migrate legacy keys', async (t) => {
   t.plan(6)
 
   const dir = await tmpDir(t)
