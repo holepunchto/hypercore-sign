@@ -401,8 +401,6 @@ test('e2e - v2 drive fixture', async (t) => {
     HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(__dirname, 'fixtures', 'keys')
   }
 
-  t.plan(3)
-
   const proc = spawn('node', ['sign.js', request], { env })
 
   t.teardown(() => proc.kill('SIGKILL'))

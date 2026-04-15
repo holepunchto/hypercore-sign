@@ -7,6 +7,7 @@ const readline = require('readline')
 const { MAX_SUPPORTED_VERSION, sign, getKeyInfo } = require('hypercore-sign-lib')
 const request = require('hypercore-signing-request')
 const z32 = require('z32')
+const b4a = require('b4a')
 
 const { version } = require('./package.json')
 const { readPassword } = require('./lib/password')
@@ -179,7 +180,7 @@ function formatHypercoreRequest(req) {
     core: req.id,
     fork: req.fork,
     length: req.length,
-    treeHash: req.treeHash.toString('hex')
+    treeHash: b4a.toString(req.treeHash, 'hex')
   }
 }
 
@@ -189,11 +190,11 @@ function formatHyperdriveRequest(req) {
     fork: req.fork,
     metadata: {
       length: req.length,
-      treeHash: req.treeHash.toString('hex')
+      treeHash: b4a.toString(req.treeHash, 'hex')
     },
     content: {
       length: req.content.length,
-      treeHash: req.content.treeHash.toString('hex')
+      treeHash: b4a.toString(req.content.treeHash, 'hex')
     }
   }
 }
