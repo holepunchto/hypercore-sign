@@ -6,8 +6,8 @@
   "files": [
     "lib/",
     "migrations/",
-    "sign.js"
-    "verify.js"
+    "sign.js",
+    "verify.js",
     "generate-keys.js"
   ],
   "bin": {

@@ -7,7 +7,7 @@ async function migrateV3(key, publicKey) {
   const password = await readPassword()
   const migrated = await migrate(key, password)
 
-  if (!migrated || (Buffer.compare(migrated.publicKey, publicKey) !== 0)) {
+  if (!migrated || Buffer.compare(migrated.publicKey, publicKey) !== 0) {
     throw new Error('Migration failed')
   }
 

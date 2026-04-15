@@ -169,6 +169,11 @@ async function migrateKeys(secretKey, publicKey, secretKeyPath) {
   }
 }
 
+function backupPath(filePath, version) {
+  if (!version) throw new Error('Must specify version')
+  return filePath + '.' + version + '.backup'
+}
+
 function formatHypercoreRequest(req) {
   return {
     core: req.id,
