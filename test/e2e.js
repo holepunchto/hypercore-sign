@@ -519,7 +519,7 @@ test('e2e - migrate legacy keys', async (t) => {
   t.is(info.version, 1)
 })
 
-test.solo('e2e - migrate legacy keys creates backup', async (t) => {
+test('e2e - migrate legacy keys creates backup', async (t) => {
   t.plan(4)
 
   const dir = await tmpDir(t)
