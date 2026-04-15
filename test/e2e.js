@@ -519,6 +519,81 @@ test('e2e - migrate legacy keys', async (t) => {
   t.is(info.version, 1)
 })
 
+test.solo('e2e - migrate legacy keys creates backup', async (t) => {
+  t.plan(4)
+
+  const dir = await tmpDir(t)
+
+  const request = await fs.readFile(
+    path.join(__dirname, 'fixtures', 'requests', 'v2-drive.request'),
+    'utf8'
+  )
+
+  const originalKey = await fs.readFile(
+    path.join(__dirname, 'fixtures', 'keys', 'default.v0'),
+    'utf8'
+  )
+
+  await fs.cp(
+    path.join(__dirname, 'fixtures', 'keys', 'default.v0'),
+    path.join(dir, 'keys', 'default')
+  )
+  await fs.cp(
+    path.join(__dirname, 'fixtures', 'keys', 'default.public'),
+    path.join(dir, 'keys', 'default.public')
+  )
+
+  const env = {
+    ...process.env,
+    HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(dir, 'keys')
+  }
+
+  const proc = spawn('node', ['sign.js', request], { env })
+
+  t.teardown(() => proc.kill('SIGKILL'))
+
+  let ondone = null
+  const done = new Promise((resolve) => (ondone = resolve))
+
+  proc.on('close', (code) => {
+    t.is(code, 0, '0 status code for migration process')
+    ondone()
+  })
+
+  proc.stdout.on('data', (bufferData) => {
+    const data = bufferData.toString().toLowerCase()
+    if (DEBUG_LOG) console.log('[sign]', data)
+
+    if (data.includes('upgrade')) {
+      proc.stdin.write('y\n')
+    }
+
+    if (data.includes('confirm?')) {
+      proc.stdin.write('y\n')
+    }
+
+    if (data.includes('password')) {
+      proc.stdin.write('password')
+    }
+  })
+
+  proc.stderr.on('data', (data) => {
+    console.error(data.toString())
+    t.fail('sign errored')
+  })
+
+  await done
+
+  const backupKey = await fs.readFile(path.join(dir, 'keys', 'default.v3.backup'), 'utf8')
+  t.is(backupKey, originalKey, 'backup is created and contains original key')
+
+  const migratedKey = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  t.ok(migratedKey !== originalKey, 'migrated key differs from original')
+
+  const migratedInfo = getKeyInfo(z32.decode(migratedKey))
+  t.is(migratedInfo.version, 1, 'migrated key is version 1')
+})
+
 async function getSigningRequest(z32publicKey, t) {
   const namespace = b4a.alloc(32, 1)
   const publicKey = z32.decode(z32publicKey)
