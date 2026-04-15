@@ -2,15 +2,18 @@
   "name": "hypercore-sign",
   "version": "4.1.1",
   "description": "Sign Hypercores",
-  "main": "index.js",
+  "main": "sign.js",
   "files": [
     "lib/",
-    "index.js"
+    "migrations/",
+    "sign.js"
+    "verify.js"
+    "generate-keys.js"
   ],
   "bin": {
-    "hypercore-sign": "./bin.js",
-    "hypercore-verify": "./bin.js",
-    "hypercore-sign-generate-keys": "./bin.js"
+    "hypercore-sign": "./sign.js",
+    "hypercore-verify": "./verify.js",
+    "hypercore-sign-generate-keys": "./generate-keys.js"
   },
   "scripts": {
     "lint": "prettier --check . && lunte",

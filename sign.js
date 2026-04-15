@@ -10,7 +10,7 @@ const z32 = require('z32')
 
 const { version } = require('./package.json')
 const { readPassword } = require('./lib/password')
-const { USER_ONLY_R } = require('./lib/permissions')
+const { USER_ONLY_R, USER_ONLY_RW } = require('./lib/permissions')
 const { migrateV3 } = require('./migrations/v3')
 
 const homeDir = os.homedir()
@@ -38,21 +38,10 @@ async function main() {
   const info = getKeyInfo(secretKey)
 
   if (info.version === V3_KEY_VERSION) {
-    console.log('Found legacy key at:', secretKeyPath)
-    if (await userConfirm('Would you like to upgrade? [y/N]')) {
-      console.log('Migrating keys...')
+    await migrateKeys(secretKey, publicKey, secretKeyPath)
 
-      await new Promise(setImmediate)
-      const migrated = await migrateV3(secretKey, publicKey)
-
-      console.log('Writing new keys to:', secretKeyPath)
-      await fsProm.writeFile(secretKeyPath, migrated, {
-        mode: USER_ONLY_R
-      })
-
-      console.log('Keys migrated successfully. Please run your request again.')
-      process.exit(0)
-    }
+    console.log('Keys migrated successfully. Please run your request again.')
+    process.exit(0)
   }
 
   let req = null
@@ -91,9 +80,6 @@ async function main() {
     process.exit(1)
   }
   console.log()
-
-  // wait a tick before passing on stdin
-  await new Promise(setImmediate)
 
   const password = await readPassword()
   const response = await sign(z32.decode(signingRequest), secretKey, password, publicKey)
@@ -137,7 +123,49 @@ async function userConfirm(prompt = 'Confirm? [y/N] ') {
     if (answer === null) continue
 
     rl.close()
+
+    // wait tick for stdin to release
+    await new Promise(setImmediate)
+
     return answer
+  }
+}
+
+async function migrateKeys(secretKey, publicKey, secretKeyPath) {
+  console.log('Found legacy key at:', secretKeyPath)
+
+  if (await userConfirm('Would you like to upgrade? [y/N]')) {
+    console.log('Migrating keys...')
+
+    const migrated = await migrateV3(secretKey, publicKey)
+
+    const backupSecretKey = backupPath(secretKeyPath, 'v3')
+
+    let copied = false
+    try {
+      await fsProm.copyFile(secretKeyPath, backupSecretKey)
+      copied = true
+
+      console.log('Writing new keys to:', secretKeyPath)
+
+      await fsProm.chmod(secretKeyPath, USER_ONLY_RW)
+      await fsProm.writeFile(secretKeyPath, migrated, {
+        mode: USER_ONLY_R
+      })
+
+      // need to set manuall in case file existed already
+      await fsProm.chmod(secretKeyPath, USER_ONLY_R)
+    } catch (err) {
+      if (copied) {
+        try {
+          await fsProm.copyFile(backupSecretKey, secretKeyPath)
+        } catch {
+          console.log('Migration failed: please restore keys from:', backupSecretKey)
+        }
+      }
+
+      throw new Error('Migration failed')
+    }
   }
 }
 
