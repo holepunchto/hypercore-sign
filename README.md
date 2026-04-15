@@ -40,7 +40,7 @@ hypercore-sign <z32SigningRequest>
 
 Sign a hypercore signing request with your private key.
 
-Expects the signing request to be [z32](z32)-encoded
+Expects the signing request to be [z32](https://github.com/mafintosh/z32)-encoded
 
 For example:
 
@@ -54,15 +54,15 @@ hypercore-sign yr8oytuhdpmg4e511nj8thyo9mju1uaw8npox9dtzpo6ndu73w9xir69yryyyyeby
 ### Verify Signatures
 
 ```
-hypercore-verify <signed-message> <signer-public-key>
+hypercore-verify <signed-message> <signing-request> <signer-public-key>
 ```
 
-Verify the signed message against the given public key.
+Verify the signed message against the given signing request and public key.
 
 For example:
 
 ```
-hypercore-verify dd89etw5o34f7bej6omrr9cxnwcd5fz6xwgamjpeyp469jq53i5yrjbxg4cftogtyyq9j1zthrsxt6mad6gwc5c6udh7n16n5gy6ayobbhyrc9y5k3s1ghwo1jhxyr844chw6fbaucd9ahp5c8ooh9qp857j8zabyyyynyeyefnq7jjth1b7kuocnu4cw48yct8ukw4d97zhsdaykeyqnmgze9ftwkj85q35t5kbnzq35155ospeh69fc657richmnb59nhk7xwd56e hu3rzup73iwuf35n458e54i3opmzo7wbbgisbuwmz7jr7jotgexo
+hypercore-verify ybndrfg8ejkmcpqxot1uwisza345h769ybndrfg8ejkmcpqxot1uwisza345h769 yr8oytuhdpmg4e511nj8thyo9mju1uaw8npox9dtzpo6ndu73w9xir69yryyyyebybywj5ifg81e8ikqbokxj1uehb1r6pkuex9s91axybjybajc47dhsgtjr9p58q8perk758qmxqn3idu5hiu5xw1iutce8xhmtmi6oxx3 hu3rzup73iwuf35n458e54i3opmzo7wbbgisbuwmz7jr7jotgexo
 ```
 
 ## License
