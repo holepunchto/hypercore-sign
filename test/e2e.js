@@ -40,7 +40,7 @@ test('e2e - sign a core', async (t) => {
 
       if (data.includes('password:')) {
         // Enter the password
-        genKeysProcess.stdin.write(DUMMY_PASSWORD)
+        genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
       if (data.includes('public key is')) {
         tCreateKeys.pass('Key creation done')
@@ -85,7 +85,7 @@ test('e2e - sign a core', async (t) => {
 
       if (data.includes('password')) {
         // Enter the password
-        signProcess.stdin.write(DUMMY_PASSWORD)
+        signProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
 
       if (data.includes('reply with:')) {
@@ -176,7 +176,7 @@ test('e2e - sign a drive', async (t) => {
 
       if (data.includes('password:')) {
         // Enter the password
-        genKeysProcess.stdin.write(DUMMY_PASSWORD)
+        genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
       if (data.includes('public key is')) {
         tCreateKeys.pass('Key creation done')
@@ -221,7 +221,7 @@ test('e2e - sign a drive', async (t) => {
 
       if (data.includes('password')) {
         // Enter the password
-        signProcess.stdin.write(DUMMY_PASSWORD)
+        signProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
 
       if (data.includes('reply with:')) {
@@ -318,7 +318,7 @@ test('e2e - v1 fixture', async (t) => {
 
     if (data.includes('password')) {
       // Enter the password
-      proc.stdin.write('password')
+      proc.stdin.write('password\n')
     }
 
     if (data.includes('reply with:')) {
@@ -338,7 +338,7 @@ test('e2e - v1 fixture', async (t) => {
   })
 })
 
-for (let i = 0; i < 20; i++) {
+for (let i = 0; i < 100; i++) {
   test.solo('e2e - v2 fixture', async (t) => {
     t.plan(3)
 
@@ -370,7 +370,7 @@ for (let i = 0; i < 20; i++) {
 
       if (data.includes('password')) {
         // Enter the password
-        proc.stdin.write('password')
+        proc.stdin.write('password\n')
       }
 
       if (data.includes('reply with:')) {
@@ -422,7 +422,7 @@ test('e2e - v2 drive fixture', async (t) => {
 
     if (data.includes('password')) {
       // Enter the password
-      proc.stdin.write('password')
+      proc.stdin.write('password\n')
     }
 
     if (data.includes('reply with:')) {
@@ -500,7 +500,7 @@ test('e2e - migrate legacy keys', async (t) => {
 
     if (data.includes('password')) {
       // Enter the password
-      proc.stdin.write('password')
+      proc.stdin.write('password\n')
     }
 
     if (data.includes('reply with:')) {
