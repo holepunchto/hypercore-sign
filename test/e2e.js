@@ -441,7 +441,7 @@ test('e2e - v2 drive fixture', async (t) => {
 })
 
 test('e2e - migrate legacy keys', async (t) => {
-  t.plan(4)
+  t.plan(6)
 
   const dir = await tmpDir(t)
 
@@ -517,6 +517,10 @@ test('e2e - migrate legacy keys', async (t) => {
   const info = getKeyInfo(z32.decode(key))
 
   t.is(info.version, 1)
+
+  const backupKey = await fs.readFile(path.join(dir, 'keys', 'default.v3.backup'), 'utf8')
+  t.is(backupKey, legacyKey, 'backup is same as original key')
+  t.not(backupKey, key, 'backup is different from migrated key')
 })
 
 async function getSigningRequest(z32publicKey, t) {
