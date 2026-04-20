@@ -33,18 +33,27 @@ test('e2e - sign a core', async (t) => {
 
   let publicKey = null
   try {
+    let data = ''
+    let respondedPassword = false
+    let respondedConfirm = false
+
     genKeysProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString().toLowerCase()
+      data += bufferData.toString().toLowerCase()
+      if (DEBUG_LOG) console.log('[generate-keys]', bufferData.toString().toLowerCase())
 
-      if (DEBUG_LOG) console.log('[generate-keys]', data.toString())
-
-      if (data.includes('password:')) {
+      if (data.includes('keypair password:') && !respondedPassword) {
         // Enter the password
+        respondedPassword = true
+        genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
+      }
+      if (data.includes('confirm password:') && !respondedConfirm) {
+        // Enter the password
+        respondedConfirm = true
         genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
       if (data.includes('public key is')) {
         tCreateKeys.pass('Key creation done')
-        publicKey = data.split('public key is ')[1].trim()
+        publicKey = data.split('public key is ')[1].split('\n')[0].trim()
       }
     })
 
@@ -74,22 +83,34 @@ test('e2e - sign a core', async (t) => {
 
   let response = null
   try {
-    signProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString().toLowerCase()
-      if (DEBUG_LOG) console.log('[sign]', data)
+    let data = ''
+    let firstConfirmIndex = -1
+    let secondConfirmIndex = -1
+    let respondedPassword = false
 
-      if (data.includes('confirm?')) {
+    signProcess.stdout.on('data', (bufferData) => {
+      data += bufferData.toString().toLowerCase()
+      if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
+
+      if (data.includes('confirm?') && data.lastIndexOf('confirm?') !== firstConfirmIndex) {
         // Enter the password
+        firstConfirmIndex = data.lastIndexOf('confirm?')
+        signProcess.stdin.write('y\n')
+      }
+      if (data.includes('confirm?') && data.lastIndexOf('confirm?') !== secondConfirmIndex) {
+        // Enter the password
+        secondConfirmIndex = data.lastIndexOf('confirm?')
         signProcess.stdin.write('y\n')
       }
 
-      if (data.includes('password')) {
+      if (data.includes('keypair password:') && !respondedPassword) {
         // Enter the password
+        respondedPassword = true
         signProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
 
       if (data.includes('reply with:')) {
-        response = data.split('reply with:')[1].trim()
+        response = data.split('reply with:\n\n')[1].split('\n')[0].trim()
         tSign.pass('Successfully signed the message')
       }
     })
@@ -169,18 +190,27 @@ test('e2e - sign a drive', async (t) => {
 
   let publicKey = null
   try {
+    let data = ''
+    let respondedPassword = false
+    let respondedConfirm = false
+
     genKeysProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString().toLowerCase()
+      data += bufferData.toString().toLowerCase()
+      if (DEBUG_LOG) console.log('[generate-keys]', bufferData.toString())
 
-      if (DEBUG_LOG) console.log('[generate-keys]', data.toString())
-
-      if (data.includes('password:')) {
+      if (data.includes('keypair password:') && !respondedPassword) {
         // Enter the password
+        respondedPassword = true
+        genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
+      }
+      if (data.includes('confirm password:') && !respondedConfirm) {
+        // Enter the password
+        respondedConfirm = true
         genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
       if (data.includes('public key is')) {
         tCreateKeys.pass('Key creation done')
-        publicKey = data.split('public key is ')[1].trim()
+        publicKey = data.split('public key is ')[1].split('\n')[0].trim()
       }
     })
 
@@ -210,22 +240,28 @@ test('e2e - sign a drive', async (t) => {
 
   let response = null
   try {
-    signProcess.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString().toLowerCase()
-      if (DEBUG_LOG) console.log('[sign]', data)
+    let data = ''
+    let firstConfirmIndex = -1
+    let secondConfirmIndex = -1
 
-      if (data.includes('confirm?')) {
+    signProcess.stdout.on('data', (bufferData) => {
+      data += bufferData.toString().toLowerCase()
+      if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
+
+      if (data.includes('confirm?') && data.lastIndexOf('confirm?') !== firstConfirmIndex) {
         // Enter the password
+        firstConfirmIndex = data.lastIndexOf('confirm?')
         signProcess.stdin.write('y\n')
       }
 
-      if (data.includes('password')) {
+      if (data.includes('password') && data.lastIndexOf('password') !== secondConfirmIndex) {
         // Enter the password
+        secondConfirmIndex = data.lastIndexOf('password')
         signProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
 
       if (data.includes('reply with:')) {
-        response = data.split('reply with:')[1].trim()
+        response = data.split('reply with:\n\n')[1].split('\n')[0].trim()
         tSign.pass('Successfully signed the message')
       }
     })
@@ -307,25 +343,41 @@ test('e2e - v1 fixture', async (t) => {
     t.is(code, 0, '0 status code for message signing process')
   })
 
-  proc.stdout.on('data', (bufferData) => {
-    const data = bufferData.toString().toLowerCase()
-    if (DEBUG_LOG) console.log('[sign]', data)
+  let data = ''
+  let firstConfirmIndex = -1
+  let secondConfirmIndex = -1
+  let respondedPassword = false
+  let checkedReply = false
+  let checkedRequestType = false
 
-    if (data.includes('confirm?')) {
+  proc.stdout.on('data', (bufferData) => {
+    data += bufferData.toString().toLowerCase()
+    if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
+
+    if (data.includes('confirm?') && data.lastIndexOf('confirm?') !== firstConfirmIndex) {
       // Enter the password
+      firstConfirmIndex = data.lastIndexOf('confirm?')
+      proc.stdin.write('y\n')
+    }
+    if (data.includes('confirm?') && data.lastIndexOf('confirm?') !== secondConfirmIndex) {
+      // Enter the password
+      secondConfirmIndex = data.lastIndexOf('confirm?')
       proc.stdin.write('y\n')
     }
 
-    if (data.includes('password')) {
+    if (data.includes('keypair password:') && !respondedPassword) {
       // Enter the password
+      respondedPassword = true
       proc.stdin.write('password\n')
     }
 
-    if (data.includes('reply with:')) {
+    if (data.includes('reply with:') && !checkedReply) {
+      checkedReply = true
       t.pass('Successfully signed the message')
     }
 
-    if (data.includes('hypercore signing request')) {
+    if (data.includes('hypercore signing request') && !checkedRequestType) {
+      checkedRequestType = true
       t.pass()
     } else if (data.includes('hyperdrive signing request')) {
       t.fail()
@@ -358,25 +410,41 @@ test('e2e - v2 fixture', async (t) => {
     t.is(code, 0, '0 status code for message signing process')
   })
 
-  proc.stdout.on('data', (bufferData) => {
-    const data = bufferData.toString().toLowerCase()
-    if (DEBUG_LOG) console.log('[sign]', data)
+  let data = ''
+  let firstConfirmIndex = -1
+  let secondConfirmIndex = -1
+  let respondedPassword = false
+  let checkedReply = false
+  let checkedRequestType = false
 
-    if (data.includes('confirm?')) {
+  proc.stdout.on('data', (bufferData) => {
+    data += bufferData.toString().toLowerCase()
+    if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
+
+    if (data.includes('confirm?') && data.lastIndexOf('confirm?') !== firstConfirmIndex) {
       // Enter the password
+      firstConfirmIndex = data.lastIndexOf('confirm?')
+      proc.stdin.write('y\n')
+    }
+    if (data.includes('confirm?') && data.lastIndexOf('confirm?') !== secondConfirmIndex) {
+      // Enter the password
+      secondConfirmIndex = data.lastIndexOf('confirm?')
       proc.stdin.write('y\n')
     }
 
-    if (data.includes('password')) {
+    if (data.includes('keypair password:') && !respondedPassword) {
       // Enter the password
+      respondedPassword = true
       proc.stdin.write('password\n')
     }
 
-    if (data.includes('reply with:')) {
+    if (data.includes('reply with:') && !checkedReply) {
+      checkedReply = true
       t.pass('Successfully signed the message')
     }
 
-    if (data.includes('hypercore signing request')) {
+    if (data.includes('hypercore signing request') && !checkedRequestType) {
+      checkedRequestType = true
       t.pass()
     } else if (data.includes('hyperdrive signing request')) {
       t.fail()
@@ -409,25 +477,41 @@ test('e2e - v2 drive fixture', async (t) => {
     t.is(code, 0, '0 status code for message signing process')
   })
 
-  proc.stdout.on('data', (bufferData) => {
-    const data = bufferData.toString().toLowerCase()
-    if (DEBUG_LOG) console.log('[sign]', data)
+  let data = ''
+  let firstConfirmIndex = -1
+  let secondConfirmIndex = -1
+  let respondedPassword = false
+  let checkedReply = false
+  let checkedRequestType = false
 
-    if (data.includes('confirm?')) {
+  proc.stdout.on('data', (bufferData) => {
+    data += bufferData.toString().toLowerCase()
+    if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
+
+    if (data.includes('confirm?') && data.lastIndexOf('confirm?') !== firstConfirmIndex) {
       // Enter the password
+      firstConfirmIndex = data.lastIndexOf('confirm?')
+      proc.stdin.write('y\n')
+    }
+    if (data.includes('confirm?') && data.lastIndexOf('confirm?') !== secondConfirmIndex) {
+      // Enter the password
+      secondConfirmIndex = data.lastIndexOf('confirm?')
       proc.stdin.write('y\n')
     }
 
-    if (data.includes('password')) {
+    if (data.includes('password') && !respondedPassword) {
       // Enter the password
+      respondedPassword = true
       proc.stdin.write('password\n')
     }
 
-    if (data.includes('reply with:')) {
+    if (data.includes('reply with:') && !checkedReply) {
+      checkedReply = true
       t.pass('Successfully signed the message')
     }
 
-    if (data.includes('hyperdrive signing request')) {
+    if (data.includes('hyperdrive signing request') && !checkedRequestType) {
+      checkedRequestType = true
       t.pass()
     } else if (data.includes('hypercore signing request')) {
       t.fail()
@@ -481,23 +565,31 @@ test('e2e - migrate legacy keys', async (t) => {
     ondone()
   })
 
-  proc.stdout.on('data', (bufferData) => {
-    const data = bufferData.toString().toLowerCase()
-    if (DEBUG_LOG) console.log('[sign]', data)
+  let data = ''
+  let checkedUpgrade = false
+  let respondedConfirm = false
+  let respondedPassword = false
 
-    if (data.includes('upgrade')) {
+  proc.stdout.on('data', (bufferData) => {
+    data += bufferData.toString().toLowerCase()
+    if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
+
+    if (data.includes('upgrade') && !checkedUpgrade) {
       t.pass()
       // Enter the password
+      checkedUpgrade = true
       proc.stdin.write('y\n')
     }
 
-    if (data.includes('confirm?')) {
+    if (data.includes('confirm?') && !respondedConfirm) {
       // Enter the password
+      respondedConfirm = true
       proc.stdin.write('y\n')
     }
 
-    if (data.includes('password')) {
+    if (data.includes('keypair password:') && !respondedPassword) {
       // Enter the password
+      respondedPassword = true
       proc.stdin.write('password\n')
     }
 
