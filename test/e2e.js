@@ -346,6 +346,7 @@ test('e2e - v1 fixture', async (t) => {
   let data = ''
   let firstConfirmIndex = -1
   let secondConfirmIndex = -1
+  let respondedPassword = false
   let checkedReply = false
   let checkedRequestType = false
 
@@ -364,8 +365,9 @@ test('e2e - v1 fixture', async (t) => {
       proc.stdin.write('y\n')
     }
 
-    if (data.includes('keypair password:')) {
+    if (data.includes('keypair password:') && !respondedPassword) {
       // Enter the password
+      respondedPassword = true
       proc.stdin.write('password\n')
     }
 
@@ -411,6 +413,7 @@ test('e2e - v2 fixture', async (t) => {
   let data = ''
   let firstConfirmIndex = -1
   let secondConfirmIndex = -1
+  let respondedPassword = false
   let checkedReply = false
   let checkedRequestType = false
 
@@ -429,8 +432,9 @@ test('e2e - v2 fixture', async (t) => {
       proc.stdin.write('y\n')
     }
 
-    if (data.includes('keypair password:')) {
+    if (data.includes('keypair password:') && !respondedPassword) {
       // Enter the password
+      respondedPassword = true
       proc.stdin.write('password\n')
     }
 
@@ -571,9 +575,9 @@ test('e2e - migrate legacy keys', async (t) => {
     if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
 
     if (data.includes('upgrade') && !checkedUpgrade) {
-      checkedUpgrade = true
       t.pass()
       // Enter the password
+      checkedUpgrade = true
       proc.stdin.write('y\n')
     }
 
