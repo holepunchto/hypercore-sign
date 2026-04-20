@@ -34,17 +34,21 @@ test('e2e - sign a core', async (t) => {
   let publicKey = null
   try {
     let data = ''
+    let respondedPassword = false
+    let respondedConfirm = false
 
     genKeysProcess.stdout.on('data', (bufferData) => {
       data += bufferData.toString().toLowerCase()
       if (DEBUG_LOG) console.log('[generate-keys]', bufferData.toString().toLowerCase())
 
-      if (data.includes('keypair password:')) {
+      if (data.includes('keypair password:') && !respondedPassword) {
         // Enter the password
+        respondedPassword = true
         genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
-      if (data.includes('confirm password:')) {
+      if (data.includes('confirm password:') && !respondedConfirm) {
         // Enter the password
+        respondedConfirm = true
         genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
       if (data.includes('public key is')) {
@@ -82,6 +86,7 @@ test('e2e - sign a core', async (t) => {
     let data = ''
     let firstConfirmIndex = -1
     let secondConfirmIndex = -1
+    let respondedPassword = false
 
     signProcess.stdout.on('data', (bufferData) => {
       data += bufferData.toString().toLowerCase()
@@ -98,8 +103,9 @@ test('e2e - sign a core', async (t) => {
         signProcess.stdin.write('y\n')
       }
 
-      if (data.includes('keypair password:')) {
+      if (data.includes('keypair password:') && !respondedPassword) {
         // Enter the password
+        respondedPassword = true
         signProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
 
@@ -185,17 +191,21 @@ test('e2e - sign a drive', async (t) => {
   let publicKey = null
   try {
     let data = ''
+    let respondedPassword = false
+    let respondedConfirm = false
 
     genKeysProcess.stdout.on('data', (bufferData) => {
       data += bufferData.toString().toLowerCase()
       if (DEBUG_LOG) console.log('[generate-keys]', bufferData.toString())
 
-      if (data.includes('keypair password:')) {
+      if (data.includes('keypair password:') && !respondedPassword) {
         // Enter the password
+        respondedPassword = true
         genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
-      if (data.includes('confirm password:')) {
+      if (data.includes('confirm password:') && !respondedConfirm) {
         // Enter the password
+        respondedConfirm = true
         genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
       if (data.includes('public key is')) {
@@ -466,6 +476,7 @@ test('e2e - v2 drive fixture', async (t) => {
   let data = ''
   let firstConfirmIndex = -1
   let secondConfirmIndex = -1
+  let respondedPassword = false
   let checkedReply = false
   let checkedRequestType = false
 
@@ -484,8 +495,9 @@ test('e2e - v2 drive fixture', async (t) => {
       proc.stdin.write('y\n')
     }
 
-    if (data.includes('password')) {
+    if (data.includes('password') && !respondedPassword) {
       // Enter the password
+      respondedPassword = true
       proc.stdin.write('password\n')
     }
 
@@ -551,6 +563,8 @@ test('e2e - migrate legacy keys', async (t) => {
 
   let data = ''
   let checkedUpgrade = false
+  let respondedConfirm = false
+  let respondedPassword = false
 
   proc.stdout.on('data', (bufferData) => {
     data += bufferData.toString().toLowerCase()
@@ -563,13 +577,15 @@ test('e2e - migrate legacy keys', async (t) => {
       proc.stdin.write('y\n')
     }
 
-    if (data.includes('confirm?')) {
+    if (data.includes('confirm?') && !respondedConfirm) {
       // Enter the password
+      respondedConfirm = true
       proc.stdin.write('y\n')
     }
 
-    if (data.includes('keypair password:')) {
+    if (data.includes('keypair password:') && !respondedPassword) {
       // Enter the password
+      respondedPassword = true
       proc.stdin.write('password\n')
     }
 
