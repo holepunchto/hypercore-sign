@@ -638,7 +638,7 @@ test('e2e - do not migrate legacy keys', async (t) => {
   t.is(info.version, 0)
 
   await t.exception(fs.stat(path.join(dir, 'keys', 'default.v3.backup')), 'backup does not exist')
-  t.alike(legacyKey, key, 'backup is different from migrated key')
+  t.alike(legacyKey, key, 'key did not change')
 })
 
 async function getSigningRequest(z32publicKey, t) {

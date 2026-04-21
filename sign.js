@@ -52,6 +52,8 @@ async function main() {
     }
   }
 
+  console.log('hello')
+
   let req = null
   try {
     req = request.decode(z32.decode(signingRequest))
