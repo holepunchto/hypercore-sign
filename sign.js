@@ -41,10 +41,15 @@ async function main() {
   const info = getKeyInfo(secretKey)
 
   if (info.version === V3_KEY_VERSION) {
-    await migrateKeys(secretKey, publicKey, secretKeyPath)
+    console.log('Found legacy key at:', secretKeyPath)
 
-    console.log('Keys migrated successfully. Please run your request again.')
-    process.exit(0)
+    if (await userConfirm('Would you like to upgrade? [y/N]')) {
+      console.log('Migrating keys...')
+      await migrateKeys(secretKey, publicKey, secretKeyPath)
+
+      console.log('Keys migrated successfully. Please run your request again.')
+      process.exit(0)
+    }
   }
 
   let req = null
@@ -135,40 +140,34 @@ async function userConfirm(prompt = 'Confirm? [y/N] ') {
 }
 
 async function migrateKeys(secretKey, publicKey, secretKeyPath) {
-  console.log('Found legacy key at:', secretKeyPath)
+  const migrated = await migrateV3(secretKey, publicKey)
 
-  if (await userConfirm('Would you like to upgrade? [y/N]')) {
-    console.log('Migrating keys...')
+  const backupSecretKey = backupPath(secretKeyPath, 'v3')
 
-    const migrated = await migrateV3(secretKey, publicKey)
+  let copied = false
+  try {
+    await fsProm.copyFile(secretKeyPath, backupSecretKey)
+    copied = true
 
-    const backupSecretKey = backupPath(secretKeyPath, 'v3')
+    console.log('Writing new keys to:', secretKeyPath)
 
-    let copied = false
-    try {
-      await fsProm.copyFile(secretKeyPath, backupSecretKey)
-      copied = true
+    await fsProm.chmod(secretKeyPath, USER_ONLY_RW)
+    await fsProm.writeFile(secretKeyPath, migrated, {
+      mode: USER_ONLY_R
+    })
 
-      console.log('Writing new keys to:', secretKeyPath)
-
-      await fsProm.chmod(secretKeyPath, USER_ONLY_RW)
-      await fsProm.writeFile(secretKeyPath, migrated, {
-        mode: USER_ONLY_R
-      })
-
-      // need to set manuall in case file existed already
-      await fsProm.chmod(secretKeyPath, USER_ONLY_R)
-    } catch (err) {
-      if (copied) {
-        try {
-          await fsProm.copyFile(backupSecretKey, secretKeyPath)
-        } catch {
-          console.log('Migration failed: please restore keys from:', backupSecretKey)
-        }
+    // need to set manuall in case file existed already
+    await fsProm.chmod(secretKeyPath, USER_ONLY_R)
+  } catch (err) {
+    if (copied) {
+      try {
+        await fsProm.copyFile(backupSecretKey, secretKeyPath)
+      } catch {
+        console.log('Migration failed: please restore keys from:', backupSecretKey)
       }
-
-      throw new Error('Migration failed')
     }
+
+    throw new Error('Migration failed')
   }
 }
 
