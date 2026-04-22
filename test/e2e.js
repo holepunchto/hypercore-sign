@@ -721,5 +721,7 @@ async function getDriveSigningRequest(z32publicKey, t) {
 }
 
 function sliceData(data, text) {
-  return data.slice(data.indexOf(text) + text.length)
+  const sliced = data.slice(data.indexOf(text) + text.length)
+  console.log("🚀 ~ sliceData ~ slice:", sliced)
+  return sliced
 }
