@@ -12,7 +12,7 @@ const { spawn } = require('child_process')
 const b4a = require('b4a')
 const z32 = require('z32')
 
-const DEBUG_LOG = false
+const DEBUG_LOG = true
 const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
 
 test('e2e - sign a core', async (t) => {
