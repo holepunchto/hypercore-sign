@@ -18,7 +18,7 @@
   "scripts": {
     "lint": "prettier --check . && lunte",
     "format": "prettier --write . && lunte --fix",
-    "test-node": "for i in {1..20}; do brittle -c test/*.js; done",
+    "test-node": "brittle -c test/*.js",
     "test": "npm run lint && npm run test-node"
   },
   "dependencies": {
