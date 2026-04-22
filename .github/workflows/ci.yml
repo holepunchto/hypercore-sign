@@ -15,9 +15,33 @@ jobs:
       matrix:
         node-version: [lts/*]
         os: [ubuntu-latest, macos-latest]
-    timeout-minutes: 5
+    # timeout-minutes: 5
     steps:
       - uses: holepunchto/actions/.github/steps/setup-repo@v1
       - run: npm i -g bare-runtime@latest
       - run: npm i
+      # 0
       - run: npm t
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      # 5
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      # 10
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      # 15
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      - run: npm t
+      # 20
