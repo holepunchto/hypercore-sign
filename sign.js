@@ -132,7 +132,10 @@ async function userConfirm(prompt = 'Confirm? [y/N] ') {
 
     if (answer === null) continue
 
-    rl.close()
+    await new Promise((resolve) => {
+      rl.once('close', resolve)
+      rl.close()
+    })
 
     // wait tick for stdin to release
     await new Promise(setImmediate)
