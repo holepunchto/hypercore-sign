@@ -139,6 +139,7 @@ async function userConfirm(prompt = 'Confirm? [y/N] ') {
 
     // wait tick for stdin to release
     await new Promise(setImmediate)
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
     return answer
   }
