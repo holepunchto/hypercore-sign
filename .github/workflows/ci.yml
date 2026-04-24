@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - show-flake
   pull_request:
     branches:
       - main
