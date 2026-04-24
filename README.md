@@ -30,7 +30,7 @@ hypercore-sign <request> -i /path/to/key  path to key file (relative or absolute
 
 Sign a hypercore signing request with your private key.
 
-Expects the signing request to be [z32](z32)-encoded
+Expects the signing request to be [z32](https://github.com/mafintosh/z32)-encoded
 
 For example:
 
@@ -52,12 +52,12 @@ hypercore-sign verify <res> <req> -i key      verify against a keyfile
 hypercore-sign verify <res> <req>             verify against all known keys
 ```
 
-Verify the signed message against the given public key.
+Verify the signed message against the given signing request and public key.
 
 For example:
 
 ```
-hypercore-verify yebyby5xzupiuamzhtcqrq4s3sh3msxjgdsdaf96saw7zb9amriic3asyryyyyebyyyonyebyryonyebyryonyebyryonyebyryonyebyryonyebyryonmwgo8copzwgshbtmt95cccpdj7xwdtg38e1brkd75do8rkmg1gpyy f4dedseg54dmqyaia97sgggtw6z4baucuwjy1fb67tad1ffujdgo
+hypercore-sign verify yebyby5xzupiuamzhtcqrq4s3sh3msxjgdsdaf96saw7zb9amriic3asyryyyyebyyyonyebyryonyebyryonyebyryonyebyryonyebyryonyebyryonmwgo8copzwgshbtmt95cccpdj7xwdtg38e1brkd75do8rkmg1gpyy f4dedseg54dmqyaia97sgggtw6z4baucuwjy1fb67tad1ffujdgo
 ```
 
 ### `hypercore-sign generate`
