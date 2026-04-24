@@ -127,6 +127,7 @@ async function signer(signingRequest, keyPath) {
 }
 
 async function verifier(response, signingRequest, pubkey) {
+  console.log(response)
   const res = hypercoreRequest.decodeResponse(z32.decode(response))
 
   let req = null

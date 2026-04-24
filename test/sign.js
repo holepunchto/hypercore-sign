@@ -18,11 +18,11 @@ test('sign - basic', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 0, 'Successfully signed request')
-  })
+  s.on('close', (code) => t.is(code, 0))
 
-  await t.execution(dummySigner(s))
+  const result = await dummySigner(s)
+
+  t.ok(result.response)
 })
 
 test('sign - base command', async (t) => {
@@ -38,11 +38,11 @@ test('sign - base command', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 0, 'Successfully signed request')
-  })
+  s.on('close', (code) => t.is(code, 0))
 
-  await t.execution(dummySigner(s))
+  const result = await dummySigner(s)
+
+  t.ok(result.response)
 })
 
 test('sign - with directory', async (t) => {
@@ -58,11 +58,11 @@ test('sign - with directory', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 0, 'Successfully signed request')
-  })
+  s.on('close', (code) => t.is(code, 0))
 
-  await t.execution(dummySigner(s))
+  const result = await dummySigner(s)
+
+  t.ok(result.response)
 })
 
 test('sign - drive request', async (t) => {
@@ -78,11 +78,11 @@ test('sign - drive request', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 0, 'Successfully signed request')
-  })
+  s.on('close', (code) => t.is(code, 0))
 
-  await t.execution(dummySigner(s))
+  const result = await dummySigner(s)
+
+  t.ok(result.response)
 })
 
 test('sign - v1 request', async (t) => {
@@ -98,11 +98,11 @@ test('sign - v1 request', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 0, 'Successfully signed request')
-  })
+  s.on('close', (code) => t.is(code, 0))
 
-  await t.execution(dummySigner(s))
+  const result = await dummySigner(s)
+
+  t.ok(result.response)
 })
 
 test('sign - specify public key file', async (t) => {
@@ -118,11 +118,11 @@ test('sign - specify public key file', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 0, 'Successfully signed request')
-  })
+  s.on('close', (code) => t.is(code, 0))
 
-  await t.execution(dummySigner(s))
+  const result = await dummySigner(s)
+
+  t.ok(result.response)
 })
 
 test('sign - alternate signer', async (t) => {
@@ -138,11 +138,11 @@ test('sign - alternate signer', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 0, 'Successfully signed request')
-  })
+  s.on('close', (code) => t.is(code, 0))
 
-  await t.execution(dummySigner(s))
+  const result = await dummySigner(s)
+
+  t.ok(result.response)
 })
 
 test('sign - wrong signer', async (t) => {
@@ -158,9 +158,7 @@ test('sign - wrong signer', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 1, 'Signing correctly exited')
-  })
+  s.on('close', (code) => t.is(code, 1))
 
   await t.exception(dummySigner(s))
 })
@@ -178,9 +176,7 @@ test('sign - bad password', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 1, 'Signing correctly exited')
-  })
+  s.on('close', (code) => t.is(code, 1))
 
   await t.exception(dummySigner(s, { password: 'drowssap' }))
 })
@@ -198,15 +194,13 @@ test('sign - no keyfile', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 1, 'Signing successfully errored')
-  })
+  s.on('close', (code) => t.is(code, 1))
 
   await t.exception(dummySigner(s))
 })
 
 test('sign - does not confirm request', async (t) => {
-  t.plan(1)
+  t.plan(2)
 
   const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
   const request = await fs.readFile(
@@ -218,11 +212,9 @@ test('sign - does not confirm request', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 1, 'Signing correctly exited')
-  })
+  s.on('close', (code) => t.is(code, 1))
 
-  dummySigner(s, { confirms: false })
+  await t.exception(dummySigner(s, { confirms: false }))
 })
 
 test('sign - does not confirm key', async (t) => {
@@ -238,15 +230,13 @@ test('sign - does not confirm key', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 1, 'Signing correctly exited')
-  })
+  s.on('close', (code) => t.is(code, 1))
 
   await t.exception(dummySigner(s, { confirms: ['yes', 'no'] }))
 })
 
 test('sign - user repeats prompt', async (t) => {
-  t.plan(2)
+  t.plan(1)
 
   const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
   const request = await fs.readFile(
@@ -258,11 +248,9 @@ test('sign - user repeats prompt', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
-  s.on('close', (code) => {
-    t.is(code, 0, 'Signing correctly exited')
-  })
+  const result = await dummySigner(s, { confirms: ['repeat', 'y', 'repeat', 'y'] })
 
-  await t.execution(dummySigner(s, { confirms: ['repeat', 'y', 'repeat', 'y'] }))
+  t.ok(result.response)
 })
 
 test('sign - bad request', async (t) => {
@@ -306,7 +294,7 @@ test('sign - no args', async (t) => {
     t.ok(message.includes('usage'))
   })
 
-  t.is(await dummySigner(s), null)
+  await t.exception(dummySigner(s))
 })
 
 test('sign - help', async (t) => {
@@ -334,5 +322,5 @@ test('sign - help', async (t) => {
     t.ok(message.includes('usage'))
   })
 
-  t.is(await dummySigner(s), null)
+  await t.exception(dummySigner(s))
 })

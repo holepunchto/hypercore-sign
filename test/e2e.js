@@ -1,17 +1,23 @@
-const fsProm = require('fs/promises')
+const fs = require('fs/promises')
 const path = require('path')
 const test = require('brittle')
 const { spawn } = require('child_process')
-const tmp = require('test-tmp')
 const z32 = require('z32')
 const hypercoreRequest = require('hypercore-signing-request')
+const { getKeyInfo } = require('hypercore-sign-lib')
 
-const { dummyUser, dummySigner, getSigningRequest, getDriveSigningRequest } = require('./helpers')
+const {
+  dummyUser,
+  dummySigner,
+  dummyVerifier,
+  getSigningRequest,
+  getDriveSigningRequest
+} = require('./helpers')
 
 const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
 
 test('e2e - sign a core', async (t) => {
-  const keysDir = await tmp(t)
+  const keysDir = await t.tmp()
 
   const t1 = t.test()
   t1.plan(2)
@@ -25,7 +31,7 @@ test('e2e - sign a core', async (t) => {
   })
 
   const publicKey = await dummyUser(g, { password: DUMMY_PASSWORD })
-  const exp = await fsProm.readFile(path.join(keysDir, 'default.public'), 'utf-8')
+  const exp = await fs.readFile(path.join(keysDir, 'default.public'), 'utf-8')
 
   t1.alike(publicKey, exp, 'Public key got written to file')
   await t1
@@ -34,58 +40,20 @@ test('e2e - sign a core', async (t) => {
 
   const keyFile = path.join(keysDir, 'default')
 
-  const t2 = t.test()
-  t2.plan(2)
-
   const s = spawn('node', ['./bin/cli.js', 'sign', request, '-i', keyFile])
+  const result = await dummySigner(s, { password: DUMMY_PASSWORD })
 
-  t2.teardown(() => s.kill('SIGKILL'))
+  t.ok(result.response)
+  t.absent(result.isHyperdrive)
 
-  s.on('close', (code) => {
-    t2.is(code, 0, '0 status code for message signing process')
-  })
+  const v = spawn('node', ['./bin/cli.js', 'verify', result.response, request, publicKey])
+  const verified = await dummyVerifier(v, { publicKey })
 
-  const signing = dummySigner(s, { password: DUMMY_PASSWORD })
-  t2.execution(signing)
-
-  const response = await signing
-
-  await t2
-
-  const t3 = t.test()
-  t3.plan(2)
-
-  const v = spawn('node', ['./bin/cli.js', 'verify', response, request, publicKey])
-
-  t3.teardown(() => v.kill('SIGKILL'))
-
-  v.on('close', (code) => {
-    t3.is(code, 0, '0 status code for verify process')
-  })
-
-  let data = ''
-  v.stdout.on('data', (bufferData) => {
-    data += bufferData.toString()
-  })
-
-  v.stderr.on('data', (data) => {
-    t3.fail('verify errored')
-  })
-
-  v.stdout.on('close', () => {
-    if (data.includes('Signature verified.')) {
-      if (data.includes(publicKey)) {
-        t3.pass('Verified that the message got signed by the correct public key')
-      } else {
-        t3.fail('Message was signed by an incorrect public key--bug in test setup')
-      }
-    }
-  })
-
-  await t3
+  t.ok(verified.success)
+  t.ok(verified.matched)
 
   // verify against actual core
-  const { signatures } = hypercoreRequest.decodeResponse(z32.decode(response))
+  const { signatures } = hypercoreRequest.decodeResponse(z32.decode(result.response))
   t.ok(verify(signatures[0]))
 
   // sanity check
@@ -94,7 +62,7 @@ test('e2e - sign a core', async (t) => {
 })
 
 test('e2e - sign a drive', async (t) => {
-  const keysDir = await tmp(t)
+  const keysDir = await t.tmp()
 
   const t1 = t.test()
   t1.plan(2)
@@ -108,7 +76,7 @@ test('e2e - sign a drive', async (t) => {
   })
 
   const publicKey = await dummyUser(g, { password: DUMMY_PASSWORD })
-  const exp = await fsProm.readFile(path.join(keysDir, 'default.public'), 'utf-8')
+  const exp = await fs.readFile(path.join(keysDir, 'default.public'), 'utf-8')
 
   t1.alike(publicKey, exp, 'Public key got written to file')
   await t1
@@ -117,58 +85,20 @@ test('e2e - sign a drive', async (t) => {
 
   const keyFile = path.join(keysDir, 'default')
 
-  const t2 = t.test()
-  t2.plan(2)
-
   const s = spawn('node', ['./bin/cli.js', 'sign', request, '-i', keyFile])
+  const result = await dummySigner(s, { password: DUMMY_PASSWORD })
 
-  t2.teardown(() => s.kill('SIGKILL'))
+  t.ok(result.response)
+  t.ok(result.isHyperdrive)
 
-  s.on('close', (code) => {
-    t2.is(code, 0, '0 status code for message signing process')
-  })
+  const v = spawn('node', ['./bin/cli.js', 'verify', result.response, request, publicKey])
+  const verified = await dummyVerifier(v, { publicKey })
 
-  const signing = dummySigner(s, { password: DUMMY_PASSWORD })
-  t2.execution(signing)
-
-  const response = await signing
-
-  await t2
-
-  const t3 = t.test()
-  t3.plan(2)
-
-  const v = spawn('node', ['./bin/cli.js', 'verify', response, request, publicKey])
-
-  t3.teardown(() => v.kill('SIGKILL'))
-
-  v.on('close', (code) => {
-    t3.is(code, 0, '0 status code for verify process')
-  })
-
-  let data = ''
-  v.stdout.on('data', (bufferData) => {
-    data += bufferData.toString()
-  })
-
-  v.stderr.on('data', (data) => {
-    t3.fail('verify errored')
-  })
-
-  v.stdout.on('close', () => {
-    if (data.includes('Signature verified.')) {
-      if (data.includes(publicKey)) {
-        t3.pass('Verified that the message got signed by the correct public key')
-      } else {
-        t3.fail('Message was signed by an incorrect public key--bug in test setup')
-      }
-    }
-  })
-
-  await t3
+  t.ok(verified.success)
+  t.ok(verified.matched)
 
   // verify against actual core
-  const { signatures } = hypercoreRequest.decodeResponse(z32.decode(response))
+  const { signatures } = hypercoreRequest.decodeResponse(z32.decode(result.response))
   t.ok(verify(signatures))
 
   // sanity check
@@ -177,258 +107,158 @@ test('e2e - sign a drive', async (t) => {
 })
 
 test('e2e - v1 fixture', async (t) => {
-  const request = await fsProm.readFile(
+  const request = await fs.readFile(
     path.join(__dirname, 'fixtures', 'requests', 'default.v1.core'),
     'utf8'
   )
-  const response = await fsProm.readFile(
+  const response = await fs.readFile(
     path.join(__dirname, 'fixtures', 'responses', 'default.v1.core'),
     'utf8'
   )
 
   const keyFile = path.join(__dirname, 'fixtures', 'keys', 'default')
 
-  const t1 = t.test()
-  t1.plan(3)
+  const s = spawn('node', ['./bin/cli.js', 'sign', request, '-i', keyFile])
+  const result = await dummySigner(s, { password: 'password' })
 
-  const s = spawn('node', ['./bin/cli.js', '-i', keyFile, request])
-
-  t1.teardown(() => s.kill('SIGKILL'))
-
-  s.on('close', (code) => {
-    t1.is(code, 0, '0 status code for message signing process')
-  })
-
-  s.stdout.on('data', (bufferData) => {
-    const data = bufferData.toString().toLowerCase()
-
-    if (data.includes('confirm?')) {
-      // Enter the password
-      s.stdin.write('y\n')
-    }
-
-    if (data.includes('password')) {
-      // Enter the password
-      s.stdin.write('password')
-    }
-
-    if (data.includes('reply with:')) {
-      t1.pass('Successfully signed the message')
-    }
-
-    if (data.includes('hypercore signing request')) {
-      t1.pass()
-    } else if (data.includes('hyperdrive signing request')) {
-      t1.fail()
-    }
-  })
-
-  s.stderr.on('data', (data) => {
-    console.error(data.toString())
-    t1.fail('sign errored')
-  })
-
-  await t1
-
-  const t2 = t.test()
-  t2.plan(2)
+  t.ok(result.response)
+  t.absent(result.isHyperdrive)
 
   const v = spawn('node', ['./bin/cli.js', 'verify', '-i', keyFile, response, request])
-
-  t2.teardown(() => v.kill('SIGKILL'))
-
-  v.on('close', (code) => {
-    t2.is(code, 0, '0 status code for message signing process')
-  })
-
-  let data = ''
-  v.stdout.on('data', (bufferData) => {
-    data += bufferData.toString()
-  })
-
-  v.stderr.on('data', (data) => {
-    t2.fail('verify errored')
-  })
-
-  v.stdout.on('close', () => {
-    if (data.includes('Signature verified.')) {
-      t2.pass('Verified that the message got signed by the correct public key')
-    }
-  })
-
-  await t2
+  t.ok(await dummyVerifier(v))
 })
 
 test('e2e - v2 core fixture', async (t) => {
-  const request = await fsProm.readFile(
+  const request = await fs.readFile(
     path.join(__dirname, 'fixtures', 'requests', 'default.v2.core'),
     'utf8'
   )
-  const response = await fsProm.readFile(
+  const response = await fs.readFile(
     path.join(__dirname, 'fixtures', 'responses', 'default.v2.core'),
     'utf8'
   )
 
   const keyFile = path.join(__dirname, 'fixtures', 'keys', 'default')
 
-  const t1 = t.test()
-  t1.plan(3)
+  const s = spawn('node', ['./bin/cli.js', 'sign', request, '-i', keyFile])
+  const result = await dummySigner(s, { password: 'password' })
 
-  const s = spawn('node', ['./bin/cli.js', '-i', keyFile, request])
-
-  t1.teardown(() => s.kill('SIGKILL'))
-
-  s.on('close', (code) => {
-    t1.is(code, 0, '0 status code for message signing process')
-  })
-
-  s.stdout.on('data', (bufferData) => {
-    const data = bufferData.toString().toLowerCase()
-
-    if (data.includes('confirm?')) {
-      // Enter the password
-      s.stdin.write('y\n')
-    }
-
-    if (data.includes('password')) {
-      // Enter the password
-      s.stdin.write('password')
-    }
-
-    if (data.includes('reply with:')) {
-      t1.pass('Successfully signed the message')
-    }
-
-    if (data.includes('hypercore signing request')) {
-      t1.pass()
-    } else if (data.includes('hyperdrive signing request')) {
-      t1.fail()
-    }
-  })
-
-  s.stderr.on('data', (data) => {
-    console.error(data.toString())
-    t1.fail('sign errored')
-  })
-
-  await t1
-
-  const t2 = t.test()
-  t2.plan(3)
+  t.ok(result.response)
+  t.absent(result.isHyperdrive)
 
   const v = spawn('node', ['./bin/cli.js', 'verify', '-i', keyFile, response, request])
-
-  t2.teardown(() => v.kill('SIGKILL'))
-
-  v.on('close', (code) => {
-    t2.is(code, 0, '0 status code for message signing process')
-  })
-
-  v.on('close', (code) => {
-    t2.is(code, 0, '0 status code for verify process')
-  })
-
-  let data = ''
-  v.stdout.on('data', (bufferData) => {
-    data += bufferData.toString()
-  })
-
-  v.stderr.on('data', (data) => {
-    t2.fail('verify errored')
-  })
-
-  v.stdout.on('close', () => {
-    if (data.includes('Signature verified.')) {
-      t2.pass('Verified that the message got signed by the correct public key')
-    }
-  })
-
-  await t2
+  t.ok(await dummyVerifier(v))
 })
 
 test('e2e - v2 drive fixture', async (t) => {
-  const request = await fsProm.readFile(
+  const request = await fs.readFile(
     path.join(__dirname, 'fixtures', 'requests', 'default.v2.drive'),
     'utf8'
   )
-  const response = await fsProm.readFile(
+  const response = await fs.readFile(
     path.join(__dirname, 'fixtures', 'responses', 'default.v2.drive'),
     'utf8'
   )
 
   const keyFile = path.join(__dirname, 'fixtures', 'keys', 'default')
 
-  const t1 = t.test()
-  t1.plan(3)
-
   const s = spawn('node', ['./bin/cli.js', '-i', keyFile, request])
+  const result = await dummySigner(s, { password: 'password' })
 
-  t1.teardown(() => s.kill('SIGKILL'))
-
-  s.on('close', (code) => {
-    t1.is(code, 0, '0 status code for message signing process')
-  })
-
-  s.stdout.on('data', (bufferData) => {
-    const data = bufferData.toString().toLowerCase()
-
-    if (data.includes('confirm?')) {
-      // Enter the password
-      s.stdin.write('y\n')
-    }
-
-    if (data.includes('password')) {
-      // Enter the password
-      s.stdin.write('password')
-    }
-
-    if (data.includes('reply with:')) {
-      t1.pass('Successfully signed the message')
-    }
-
-    if (data.includes('hyperdrive signing request')) {
-      t1.pass()
-    } else if (data.includes('hypercore signing request')) {
-      t1.fail()
-    }
-  })
-
-  s.stderr.on('data', (data) => {
-    console.error(data.toString())
-    t1.fail('sign errored')
-  })
-
-  await t1
-
-  const t2 = t.test()
-  t2.plan(3)
+  t.ok(result.response)
+  t.ok(result.isHyperdrive)
 
   const v = spawn('node', ['./bin/cli.js', 'verify', '-i', keyFile, response, request])
+  t.ok(await dummyVerifier(v))
+})
 
-  t2.teardown(() => v.kill('SIGKILL'))
+test('e2e - migrate legacy keys', async (t) => {
+  t.plan(6)
 
-  v.on('close', (code) => {
-    t2.is(code, 0, '0 status code for message signing process')
-  })
+  const dir = await t.tmp()
 
-  v.on('close', (code) => {
-    t2.is(code, 0, '0 status code for verify process')
-  })
+  const request = await fs.readFile(
+    path.join(__dirname, 'fixtures', 'requests', 'v2-drive.request'),
+    'utf8'
+  )
 
-  let data = ''
-  v.stdout.on('data', (bufferData) => {
-    data += bufferData.toString()
-  })
+  await fs.cp(
+    path.join(__dirname, 'fixtures', 'keys', 'default.v0'),
+    path.join(dir, 'keys', 'default')
+  )
+  await fs.cp(
+    path.join(__dirname, 'fixtures', 'keys', 'default.public'),
+    path.join(dir, 'keys', 'default.public')
+  )
 
-  v.stderr.on('data', (data) => {
-    t2.fail('verify errored')
-  })
+  const env = {
+    ...process.env,
+    HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(dir, 'keys')
+  }
 
-  v.stdout.on('close', () => {
-    if (data.includes('Signature verified.')) {
-      t2.pass('Verified that the message got signed by the correct public key')
-    }
-  })
+  const legacyKey = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  const legacyInfo = getKeyInfo(z32.decode(legacyKey))
 
-  await t2
+  t.is(legacyInfo.version, 0)
+
+  const proc = spawn('node', ['sign.js', request], { env })
+
+  const result = await dummySigner(proc, { password: 'password', migrate: true })
+
+  t.ok(result.migrated, 'did migrate')
+  t.absent(result.response, 'did not sign')
+
+  const key = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  const info = getKeyInfo(z32.decode(key))
+
+  t.is(info.version, 1)
+
+  const backupKey = await fs.readFile(path.join(dir, 'keys', 'default.v3.backup'), 'utf8')
+  t.is(backupKey, legacyKey, 'backup is same as original key')
+  t.not(backupKey, key, 'backup is different from migrated key')
+})
+
+test('e2e - do not migrate legacy keys', async (t) => {
+  t.plan(6)
+
+  const dir = await t.tmp()
+
+  const request = await fs.readFile(
+    path.join(__dirname, 'fixtures', 'requests', 'v2-drive.request'),
+    'utf8'
+  )
+
+  await fs.cp(
+    path.join(__dirname, 'fixtures', 'keys', 'default.v0'),
+    path.join(dir, 'keys', 'default')
+  )
+  await fs.cp(
+    path.join(__dirname, 'fixtures', 'keys', 'default.public'),
+    path.join(dir, 'keys', 'default.public')
+  )
+
+  const env = {
+    ...process.env,
+    HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(dir, 'keys')
+  }
+
+  const legacyKey = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  const legacyInfo = getKeyInfo(z32.decode(legacyKey))
+
+  t.is(legacyInfo.version, 0)
+
+  const proc = spawn('node', ['sign.js', request], { env })
+
+  const result = await dummySigner(proc, { password: 'password', migrate: false })
+
+  t.absent(result.migrated, 'did not migrate')
+  t.ok(result.response, 'signed')
+
+  const key = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  const info = getKeyInfo(z32.decode(key))
+
+  t.is(info.version, 0)
+
+  await t.exception(fs.stat(path.join(dir, 'keys', 'default.v3.backup')), 'backup does not exist')
+  t.alike(legacyKey, key, 'key did not change')
 })

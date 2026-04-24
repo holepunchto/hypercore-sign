@@ -9,6 +9,7 @@ const b4a = require('b4a')
 module.exports = {
   dummyUser,
   dummySigner,
+  dummyVerifier,
   getSigningRequest,
   getDriveSigningRequest
 }
@@ -93,49 +94,127 @@ async function getDriveSigningRequest(z32publicKey, t) {
   }
 }
 
-function dummyUser(proc, { name = '', password = 'password', confirmPassword = password } = {}) {
-  return new Promise((resolve, reject) => {
-    proc.on('close', () => resolve(null))
+async function dummyUser(
+  proc,
+  { name = '', password = 'password', confirmPassword = password } = {}
+) {
+  let publicKey
+  await reader(proc, (output, onchange) => {
+    if (output.includes('choose a name')) {
+      proc.stdin.write(name + '\n')
+      onchange()
+    }
 
-    proc.stderr.on('data', (data) => {
-      reject(new Error('Key generation failed'))
-    })
+    if (output.includes('confirm password')) {
+      proc.stdin.write(confirmPassword)
+      onchange()
+    }
 
-    proc.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString().toLowerCase()
+    if (output.includes('password:')) {
+      proc.stdin.write(password)
+      onchange()
+    }
 
-      if (data.includes('choose a name')) {
-        proc.stdin.write(name + '\n')
-      } else if (data.includes('confirm password')) {
-        proc.stdin.write(confirmPassword)
-      } else if (data.includes('password:')) {
-        proc.stdin.write(password)
-      } else if (data.includes('public key is')) {
-        resolve(data.split('public key is ')[1].trim())
-      }
-    })
+    if (output.includes('public key is')) {
+      publicKey = output.split('public key is ')[1].trim()
+      onchange()
+    }
   })
+  return publicKey
 }
 
-function dummySigner(proc, { password = 'password', confirms = true } = {}) {
+async function dummySigner(proc, { password = 'password', confirms = true, migrate = true } = {}) {
+  const result = {
+    migrated: false,
+    response: null,
+    isHyperdrive: false
+  }
+
+  await reader(proc, (output, onchange) => {
+    if (output.includes('confirm?') || output.includes('answer with')) {
+      const ans = Array.isArray(confirms) ? confirms.shift() : confirms ? 'y' : 'n'
+      proc.stdin.write(ans + '\n')
+      onchange()
+    }
+
+    if (output.includes('password:')) {
+      proc.stdin.write(password)
+      onchange()
+    }
+
+    if (output.includes('signing request')) {
+      result.isHyperdrive = output.includes('hyperdrive')
+      onchange()
+    }
+
+    if (output.includes('upgrade')) {
+      proc.stdin.write(migrate ? 'y\n' : 'N\n')
+      onchange()
+    }
+
+    if (output.includes('migrated')) {
+      result.migrated = true
+      onchange()
+    }
+
+    if (output.includes('reply with:')) {
+      result.response = output.split('reply with:')[1].trim()
+      onchange()
+    }
+  })
+
+  return result
+}
+
+async function dummyVerifier(proc, { publicKey } = {}) {
+  const result = {
+    success: false,
+    matched: false
+  }
+
+  await reader(proc, (output, onchange) => {
+    if (publicKey && output.includes('signed')) {
+      onchange()
+      result.matched = output.includes(publicKey)
+    }
+
+    if (output.includes('signature verified.')) {
+      onchange()
+      result.success = true
+    }
+  })
+
+  return result
+}
+
+async function reader(proc, ondata) {
+  let marked = false
+  let output = ''
+
   return new Promise((resolve, reject) => {
-    proc.on('close', () => resolve(null))
+    proc.on('close', (code) => {
+      if (code) reject('bad exit code')
+      else resolve()
+    })
 
     proc.stderr.on('data', (data) => {
-      reject(new Error('Signature generation failed'))
+      reject(new Error('process errored'))
     })
 
-    proc.stdout.on('data', (bufferData) => {
-      const data = bufferData.toString().toLowerCase()
-
-      if (data.includes('confirm?') || data.includes('answer with')) {
-        const ans = Array.isArray(confirms) ? confirms.shift() : confirms ? 'y' : 'n'
-        proc.stdin.write(ans + '\n')
-      } else if (data.includes('password:')) {
-        proc.stdin.write(password)
-      } else if (data.includes('reply with:')) {
-        resolve(data.split('reply with:')[1].trim())
-      }
+    proc.stdout.on('data', (data) => {
+      output += data.toString().toLowerCase()
+      ondata(output, mark)
+      flush()
     })
   })
+
+  function mark() {
+    marked = true
+  }
+
+  function flush() {
+    if (!marked) return
+    output = ''
+    marked = false
+  }
 }
