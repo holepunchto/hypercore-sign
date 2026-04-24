@@ -19,7 +19,7 @@ async function main() {
   const pubkey = process.argv[4]
 
   if (!response || !signingRequest || !pubkey) {
-    console.log('Error: missing input')
+    console.error('Error: missing input')
     console.log(usage)
     process.exit(1)
   }
