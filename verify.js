@@ -18,6 +18,12 @@ async function main() {
   const signingRequest = process.argv[3]
   const pubkey = process.argv[4]
 
+  if (!response || !signingRequest || !pubkey) {
+    console.log('Error: missing input')
+    console.log(usage)
+    process.exit(1)
+  }
+
   try {
     const req = await verify(z32.decode(response), z32.decode(signingRequest), z32.decode(pubkey))
     console.log('\nSignature verified.')
