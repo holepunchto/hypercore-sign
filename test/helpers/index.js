@@ -108,9 +108,7 @@ async function dummyUser(
     if (output.includes('confirm password')) {
       proc.stdin.write(confirmPassword)
       onchange()
-    }
-
-    if (output.includes('password:')) {
+    } else if (output.includes('password:')) {
       proc.stdin.write(password)
       onchange()
     }
