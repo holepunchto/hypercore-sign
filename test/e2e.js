@@ -41,7 +41,7 @@ test('e2e - sign a core', async (t) => {
 
       // Enter the password
       if (data.includes('password:')) {
-        data = ''
+        data = sliceData(data, 'password:')
         genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
 
@@ -85,20 +85,19 @@ test('e2e - sign a core', async (t) => {
 
       // User confirm
       if (data.includes('confirm?')) {
-        data = ''
+        data = sliceData(data, 'confirm?')
         signProcess.stdin.write('y\n')
       }
 
       // Enter the password
       if (data.includes('keypair password:')) {
-        data = ''
+        data = sliceData(data, 'keypair password:')
         signProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
 
       if (data.includes('reply with:')) {
         response = data.split('reply with:\n\n')[1].split('\n')[0].trim()
         tSign.pass('Successfully signed the message')
-        data = ''
       }
     })
 
@@ -185,7 +184,7 @@ test('e2e - sign a drive', async (t) => {
 
       // Enter password
       if (data.includes('password:')) {
-        data = ''
+        data = sliceData(data, 'password:')
         genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
 
@@ -229,13 +228,13 @@ test('e2e - sign a drive', async (t) => {
 
       // User confirm
       if (data.includes('confirm?')) {
-        data = ''
+        data = sliceData(data, 'confirm?')
         signProcess.stdin.write('y\n')
       }
 
       // Enter the password
       if (data.includes('password')) {
-        data = ''
+        data = sliceData(data, 'password')
         signProcess.stdin.write(DUMMY_PASSWORD + '\n')
       }
 
@@ -328,25 +327,25 @@ test('e2e - v1 fixture', async (t) => {
     data += bufferData.toString().toLowerCase()
     if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
 
+    if (data.includes('signing request')) {
+      t.ok(data.includes('hypercore'))
+      data = sliceData(data, 'signing request')
+    }
+
     // User confirm
     if (data.includes('confirm?')) {
-      data = ''
+      data = sliceData(data, 'confirm?')
       proc.stdin.write('y\n')
     }
 
     // Enter the password
     if (data.includes('keypair password:')) {
-      data = ''
+      data = sliceData(data, 'keypair password:')
       proc.stdin.write('password\n')
     }
 
     if (data.includes('reply with:')) {
       t.pass('Successfully signed the message')
-    }
-
-    if (data.includes('signing request')) {
-      t.ok(data.includes('hypercore'))
-      data = ''
     }
   })
 
@@ -382,25 +381,25 @@ test('e2e - v2 fixture', async (t) => {
     data += bufferData.toString().toLowerCase()
     if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
 
-    // User confrim
+    if (data.includes('signing request')) {
+      t.ok(data.includes('hypercore'))
+      data = sliceData(data, 'signing request')
+    }
+
+    // User confirm
     if (data.includes('confirm?')) {
-      data = ''
+      data = sliceData(data, 'confirm?')
       proc.stdin.write('y\n')
     }
 
     // Enter the password
     if (data.includes('keypair password:')) {
-      data = ''
+      data = sliceData(data, 'keypair password:')
       proc.stdin.write('password\n')
     }
 
     if (data.includes('reply with:')) {
       t.pass('Successfully signed the message')
-    }
-
-    if (data.includes('signing request')) {
-      t.ok(data.includes('hypercore'))
-      data = ''
     }
   })
 
@@ -436,27 +435,27 @@ test('e2e - v2 drive fixture', async (t) => {
     data += bufferData.toString().toLowerCase()
     if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
 
+    // Check request
+    if (data.includes('signing request')) {
+      t.ok(data.includes('hyperdrive'))
+      data = sliceData(data, 'signing request')
+    }
+
     // User confirm
     if (data.includes('confirm?')) {
-      data = ''
+      data = sliceData(data, 'confirm?')
       proc.stdin.write('y\n')
     }
 
     // Enter the password
     if (data.includes('password')) {
-      data = ''
+      data = sliceData(data, 'password')
       proc.stdin.write('password\n')
     }
 
     // Verify output
     if (data.includes('reply with:')) {
       t.pass('Successfully signed the message')
-    }
-
-    // Check request
-    if (data.includes('signing request')) {
-      t.ok(data.includes('hyperdrive'))
-      data = ''
     }
   })
 
@@ -515,20 +514,20 @@ test('e2e - migrate legacy keys', async (t) => {
 
     // Confirm migrate
     if (data.includes('upgrade')) {
-      data = ''
+      data = sliceData(data, 'upgrade')
       t.pass()
       proc.stdin.write('y\n')
     }
 
     // User confirm
     if (data.includes('confirm?')) {
-      data = ''
+      data = sliceData(data, 'confirm?')
       proc.stdin.write('y\n')
     }
 
     // Enter the password
     if (data.includes('keypair password:')) {
-      data = ''
+      data = sliceData(data, 'keypair password:')
       proc.stdin.write('password\n')
     }
 
@@ -604,19 +603,19 @@ test('e2e - do not migrate legacy keys', async (t) => {
     if (data.includes('upgrade')) {
       t.pass()
       // Enter the password
-      data = ''
+      data = sliceData(data, 'upgrade')
       proc.stdin.write('N\n')
     }
 
     if (data.includes('confirm?')) {
       // Enter the password
-      data = ''
+      data = sliceData(data, 'confirm?')
       proc.stdin.write('y\n')
     }
 
     if (data.includes('keypair password:')) {
       // Enter the password
-      data = ''
+      data = sliceData(data, 'keypair password:')
       proc.stdin.write('password\n')
     }
 
@@ -719,4 +718,8 @@ async function getDriveSigningRequest(z32publicKey, t) {
       )
     }
   }
+}
+
+function sliceData(data, text) {
+  return data.slice(data.indexOf(text) + text.length)
 }
