@@ -12,7 +12,7 @@ const { spawn } = require('child_process')
 const b4a = require('b4a')
 const z32 = require('z32')
 
-const DEBUG_LOG = true
+const DEBUG_LOG = process.env.DEBUG_LOG === '1'
 const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
 
 test('e2e - sign a core', async (t) => {
@@ -39,15 +39,25 @@ test('e2e - sign a core', async (t) => {
       data += bufferData.toString().toLowerCase()
       if (DEBUG_LOG) console.log('[generate-keys]', bufferData.toString().toLowerCase())
 
-      // Enter the password
-      if (data.includes('password:')) {
-        data = sliceData(data, 'password:')
-        genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
-      }
+      data = drainPrompts(data, [
+        {
+          text: 'keypair password:',
+          action() {
+            genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
+          }
+        },
+        {
+          text: 'confirm password:',
+          action() {
+            genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
+          }
+        }
+      ])
 
-      if (data.includes('public key is')) {
+      if (publicKey === null && data.includes('public key is ')) {
         tCreateKeys.pass('Key creation done')
         publicKey = data.split('public key is ')[1].split('\n')[0].trim()
+        data = sliceData(data, 'public key is ')
       }
     })
 
@@ -83,21 +93,25 @@ test('e2e - sign a core', async (t) => {
       data += bufferData.toString().toLowerCase()
       if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
 
-      // User confirm
-      if (data.includes('confirm?')) {
-        data = sliceData(data, 'confirm?')
-        signProcess.stdin.write('y\n')
-      }
+      data = drainPrompts(data, [
+        {
+          text: 'confirm?',
+          action() {
+            signProcess.stdin.write('y\n')
+          }
+        },
+        {
+          text: 'keypair password:',
+          action() {
+            signProcess.stdin.write(DUMMY_PASSWORD + '\n')
+          }
+        }
+      ])
 
-      // Enter the password
-      if (data.includes('keypair password:')) {
-        data = sliceData(data, 'keypair password:')
-        signProcess.stdin.write(DUMMY_PASSWORD + '\n')
-      }
-
-      if (data.includes('reply with:')) {
+      if (response === null && data.includes('reply with:')) {
         response = data.split('reply with:\n\n')[1].split('\n')[0].trim()
         tSign.pass('Successfully signed the message')
+        data = sliceData(data, 'reply with:')
       }
     })
 
@@ -182,15 +196,25 @@ test('e2e - sign a drive', async (t) => {
       data += bufferData.toString().toLowerCase()
       if (DEBUG_LOG) console.log('[generate-keys]', bufferData.toString())
 
-      // Enter password
-      if (data.includes('password:')) {
-        data = sliceData(data, 'password:')
-        genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
-      }
+      data = drainPrompts(data, [
+        {
+          text: 'keypair password:',
+          action() {
+            genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
+          }
+        },
+        {
+          text: 'confirm password:',
+          action() {
+            genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
+          }
+        }
+      ])
 
-      if (data.includes('public key is')) {
+      if (publicKey === null && data.includes('public key is ')) {
         tCreateKeys.pass('Key creation done')
         publicKey = data.split('public key is ')[1].split('\n')[0].trim()
+        data = sliceData(data, 'public key is ')
       }
     })
 
@@ -226,21 +250,25 @@ test('e2e - sign a drive', async (t) => {
       data += bufferData.toString().toLowerCase()
       if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
 
-      // User confirm
-      if (data.includes('confirm?')) {
-        data = sliceData(data, 'confirm?')
-        signProcess.stdin.write('y\n')
-      }
+      data = drainPrompts(data, [
+        {
+          text: 'confirm?',
+          action() {
+            signProcess.stdin.write('y\n')
+          }
+        },
+        {
+          text: 'keypair password:',
+          action() {
+            signProcess.stdin.write(DUMMY_PASSWORD + '\n')
+          }
+        }
+      ])
 
-      // Enter the password
-      if (data.includes('password')) {
-        data = sliceData(data, 'password')
-        signProcess.stdin.write(DUMMY_PASSWORD + '\n')
-      }
-
-      if (data.includes('reply with:')) {
+      if (response === null && data.includes('reply with:')) {
         response = data.split('reply with:\n\n')[1].split('\n')[0].trim()
         tSign.pass('Successfully signed the message')
+        data = sliceData(data, 'reply with:')
       }
     })
 
@@ -332,20 +360,24 @@ test('e2e - v1 fixture', async (t) => {
       data = sliceData(data, 'signing request')
     }
 
-    // User confirm
-    if (data.includes('confirm?')) {
-      data = sliceData(data, 'confirm?')
-      proc.stdin.write('y\n')
-    }
-
-    // Enter the password
-    if (data.includes('keypair password:')) {
-      data = sliceData(data, 'keypair password:')
-      proc.stdin.write('password\n')
-    }
+    data = drainPrompts(data, [
+      {
+        text: 'confirm?',
+        action() {
+          proc.stdin.write('y\n')
+        }
+      },
+      {
+        text: 'keypair password:',
+        action() {
+          proc.stdin.write('password\n')
+        }
+      }
+    ])
 
     if (data.includes('reply with:')) {
       t.pass('Successfully signed the message')
+      data = sliceData(data, 'reply with:')
     }
   })
 
@@ -386,20 +418,24 @@ test('e2e - v2 fixture', async (t) => {
       data = sliceData(data, 'signing request')
     }
 
-    // User confirm
-    if (data.includes('confirm?')) {
-      data = sliceData(data, 'confirm?')
-      proc.stdin.write('y\n')
-    }
-
-    // Enter the password
-    if (data.includes('keypair password:')) {
-      data = sliceData(data, 'keypair password:')
-      proc.stdin.write('password\n')
-    }
+    data = drainPrompts(data, [
+      {
+        text: 'confirm?',
+        action() {
+          proc.stdin.write('y\n')
+        }
+      },
+      {
+        text: 'keypair password:',
+        action() {
+          proc.stdin.write('password\n')
+        }
+      }
+    ])
 
     if (data.includes('reply with:')) {
       t.pass('Successfully signed the message')
+      data = sliceData(data, 'reply with:')
     }
   })
 
@@ -441,21 +477,25 @@ test('e2e - v2 drive fixture', async (t) => {
       data = sliceData(data, 'signing request')
     }
 
-    // User confirm
-    if (data.includes('confirm?')) {
-      data = sliceData(data, 'confirm?')
-      proc.stdin.write('y\n')
-    }
-
-    // Enter the password
-    if (data.includes('password')) {
-      data = sliceData(data, 'password')
-      proc.stdin.write('password\n')
-    }
+    data = drainPrompts(data, [
+      {
+        text: 'confirm?',
+        action() {
+          proc.stdin.write('y\n')
+        }
+      },
+      {
+        text: 'keypair password:',
+        action() {
+          proc.stdin.write('password\n')
+        }
+      }
+    ])
 
     // Verify output
     if (data.includes('reply with:')) {
       t.pass('Successfully signed the message')
+      data = sliceData(data, 'reply with:')
     }
   })
 
@@ -512,24 +552,27 @@ test('e2e - migrate legacy keys', async (t) => {
     data += bufferData.toString().toLowerCase()
     if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
 
-    // Confirm migrate
-    if (data.includes('upgrade')) {
-      data = sliceData(data, 'upgrade')
-      t.pass()
-      proc.stdin.write('y\n')
-    }
-
-    // User confirm
-    if (data.includes('confirm?')) {
-      data = sliceData(data, 'confirm?')
-      proc.stdin.write('y\n')
-    }
-
-    // Enter the password
-    if (data.includes('keypair password:')) {
-      data = sliceData(data, 'keypair password:')
-      proc.stdin.write('password\n')
-    }
+    data = drainPrompts(data, [
+      {
+        text: 'would you like to upgrade?',
+        action() {
+          t.pass()
+          proc.stdin.write('y\n')
+        }
+      },
+      {
+        text: 'confirm?',
+        action() {
+          proc.stdin.write('y\n')
+        }
+      },
+      {
+        text: 'keypair password:',
+        action() {
+          proc.stdin.write('password\n')
+        }
+      }
+    ])
 
     if (data.includes('reply with:')) {
       t.fail()
@@ -597,30 +640,34 @@ test('e2e - do not migrate legacy keys', async (t) => {
   let data = ''
 
   proc.stdout.on('data', (bufferData) => {
-    data = bufferData.toString().toLowerCase()
+    data += bufferData.toString().toLowerCase()
     if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
 
-    if (data.includes('upgrade')) {
-      t.pass()
-      // Enter the password
-      data = sliceData(data, 'upgrade')
-      proc.stdin.write('N\n')
-    }
-
-    if (data.includes('confirm?')) {
-      // Enter the password
-      data = sliceData(data, 'confirm?')
-      proc.stdin.write('y\n')
-    }
-
-    if (data.includes('keypair password:')) {
-      // Enter the password
-      data = sliceData(data, 'keypair password:')
-      proc.stdin.write('password\n')
-    }
+    data = drainPrompts(data, [
+      {
+        text: 'would you like to upgrade?',
+        action() {
+          t.pass()
+          proc.stdin.write('N\n')
+        }
+      },
+      {
+        text: 'confirm?',
+        action() {
+          proc.stdin.write('y\n')
+        }
+      },
+      {
+        text: 'keypair password:',
+        action() {
+          proc.stdin.write('password\n')
+        }
+      }
+    ])
 
     if (data.includes('reply with:')) {
       t.pass()
+      data = sliceData(data, 'reply with:')
     }
   })
 
@@ -721,7 +768,34 @@ async function getDriveSigningRequest(z32publicKey, t) {
 }
 
 function sliceData(data, text) {
-  const sliced = data.slice(data.indexOf(text) + text.length)
-  console.log('<slice-before>', data, '<slice-start>', sliced, '<slice-end>')
+  const index = data.indexOf(text)
+  if (index === -1) return data
+
+  const sliced = data.slice(index + text.length)
+  if (DEBUG_LOG) console.log('<slice-before>', data, '<slice-start>', sliced, '<slice-end>')
   return sliced
+}
+
+function drainPrompts(data, prompts) {
+  while (true) {
+    const prompt = nextPrompt(data, prompts)
+    if (prompt === null) return data
+
+    data = sliceData(data, prompt.text)
+    prompt.action()
+  }
+}
+
+function nextPrompt(data, prompts) {
+  let next = null
+
+  for (const prompt of prompts) {
+    const index = data.indexOf(prompt.text)
+    if (index === -1) continue
+    if (next !== null && next.index <= index) continue
+
+    next = { index, ...prompt }
+  }
+
+  return next
 }
