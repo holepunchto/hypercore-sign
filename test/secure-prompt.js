@@ -17,11 +17,12 @@ test('secure-prompt reads from piped stdin twice', async (t) => {
 
   child.stdout.on('data', (chunk) => {
     output += chunk.toString()
-  })
 
-  child.stdin.write(PASSWORD + '\n')
-  child.stdin.write(PASSWORD + '\n')
-  child.stdin.end()
+    if (output.includes('password:')) {
+      output = ''
+      child.stdin.write(PASSWORD + '\n')
+    }
+  })
 
   const [code, signal] = await new Promise((resolve) => {
     child.on('exit', (code, signal) => resolve([code, signal]))
