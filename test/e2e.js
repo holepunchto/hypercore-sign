@@ -15,7 +15,7 @@ const z32 = require('z32')
 const DEBUG_LOG = false
 const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
 
-for (let i = 0: i < 100; i++) {
+for (let i = 0; i < 100; i++) {
   test.solo('e2e - sign a core', async (t) => {
     const keysDir = await t.tmp()
 
