@@ -2,7 +2,7 @@ const test = require('brittle')
 const { spawn } = require('child_process')
 const path = require('path')
 
-const RUNS = 20
+const RUNS = 50
 
 test('secure-prompt reads from piped stdin', async (t) => {
   t.plan(3 * RUNS)
