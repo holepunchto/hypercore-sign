@@ -15,148 +15,150 @@ const z32 = require('z32')
 const DEBUG_LOG = false
 const DUMMY_PASSWORD = Math.random().toString().slice(2).padStart(8, 'x')
 
-test('e2e - sign a core', async (t) => {
-  const keysDir = await t.tmp()
+for (let i = 0: i < 100; i++) {
+  test.solo('e2e - sign a core', async (t) => {
+    const keysDir = await t.tmp()
 
-  const tCreateKeys = t.test()
-  tCreateKeys.plan(2)
+    const tCreateKeys = t.test()
+    tCreateKeys.plan(2)
 
-  const env = {
-    ...process.env,
-    HYPERCORE_SIGN_KEYS_DIRECTORY: keysDir
-  }
+    const env = {
+      ...process.env,
+      HYPERCORE_SIGN_KEYS_DIRECTORY: keysDir
+    }
 
-  const genKeysProcess = spawn('node', ['generate-keys.js'], { env })
-  genKeysProcess.on('close', (code) => {
-    tCreateKeys.is(code, 0, 'Successfully created keys')
-  })
-
-  let publicKey = null
-  try {
-    let data = ''
-
-    genKeysProcess.stdout.on('data', (bufferData) => {
-      data += bufferData.toString().toLowerCase()
-      if (DEBUG_LOG) console.log('[generate-keys]', bufferData.toString().toLowerCase())
-
-      // Enter the password
-      if (data.includes('password:')) {
-        data = sliceData(data, 'password:')
-        genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
-      }
-
-      if (data.includes('public key is')) {
-        tCreateKeys.pass('Key creation done')
-        publicKey = data.split('public key is ')[1].split('\n')[0].trim()
-      }
+    const genKeysProcess = spawn('node', ['generate-keys.js'], { env })
+    genKeysProcess.on('close', (code) => {
+      tCreateKeys.is(code, 0, 'Successfully created keys')
     })
 
-    genKeysProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('generate-keys errored')
-    })
+    let publicKey = null
+    try {
+      let data = ''
 
-    await tCreateKeys
-  } finally {
-    // To ensure the process is always killed
-    genKeysProcess.kill('SIGKILL')
-  }
+      genKeysProcess.stdout.on('data', (bufferData) => {
+        data += bufferData.toString().toLowerCase()
+        if (DEBUG_LOG) console.log('[generate-keys]', bufferData.toString().toLowerCase())
 
-  const readPublicKey = await fs.readFile(path.join(keysDir, 'default.public'), 'utf-8')
-  t.alike(publicKey, readPublicKey, 'Public key got written to file')
-
-  const { request, verify } = await getSigningRequest(publicKey, t)
-
-  const tSign = t.test()
-  tSign.plan(2)
-
-  const signProcess = spawn('node', ['sign.js', request], { env })
-  signProcess.on('close', (code) => {
-    tSign.is(code, 0, '0 status code for message signing process')
-  })
-
-  let response = null
-  try {
-    let data = ''
-
-    signProcess.stdout.on('data', (bufferData) => {
-      data += bufferData.toString().toLowerCase()
-      if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
-
-      // User confirm
-      if (data.includes('confirm?')) {
-        data = sliceData(data, 'confirm?')
-        signProcess.stdin.write('y\n')
-      }
-
-      // Enter the password
-      if (data.includes('keypair password:')) {
-        data = sliceData(data, 'keypair password:')
-        signProcess.stdin.write(DUMMY_PASSWORD + '\n')
-      }
-
-      if (data.includes('reply with:')) {
-        response = data.split('reply with:\n\n')[1].split('\n')[0].trim()
-        tSign.pass('Successfully signed the message')
-      }
-    })
-
-    signProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('sign errored')
-    })
-
-    await tSign
-  } finally {
-    // To ensure the process is always killed
-    signProcess.kill('SIGKILL')
-  }
-
-  const tVerify = t.test()
-  tVerify.plan(2)
-
-  const verifyProcess = spawn('node', ['verify.js', response, request, publicKey], { env })
-  verifyProcess.on('close', (code) => {
-    tVerify.is(code, 0, '0 status code for verify process')
-  })
-
-  try {
-    let data = ''
-    verifyProcess.stdout.on('data', (bufferData) => {
-      data += bufferData.toString()
-    })
-
-    verifyProcess.stderr.on('data', (data) => {
-      console.error(data.toString())
-      t.fail('verify errored')
-    })
-
-    verifyProcess.stdout.on('close', () => {
-      if (DEBUG_LOG) console.log('[verify]', data)
-
-      if (data.includes('Signature verified.')) {
-        if (data.includes(publicKey)) {
-          tVerify.pass('Verified that the message got signed by the correct public key')
-        } else {
-          tVerify.fail('Message was signed by an incorrect public key--bug in test setup')
+        // Enter the password
+        if (data.includes('password:')) {
+          data = sliceData(data, 'password:')
+          genKeysProcess.stdin.write(DUMMY_PASSWORD + '\n')
         }
-      }
+
+        if (data.includes('public key is')) {
+          tCreateKeys.pass('Key creation done')
+          publicKey = data.split('public key is ')[1].split('\n')[0].trim()
+        }
+      })
+
+      genKeysProcess.stderr.on('data', (data) => {
+        console.error(data.toString())
+        t.fail('generate-keys errored')
+      })
+
+      await tCreateKeys
+    } finally {
+      // To ensure the process is always killed
+      genKeysProcess.kill('SIGKILL')
+    }
+
+    const readPublicKey = await fs.readFile(path.join(keysDir, 'default.public'), 'utf-8')
+    t.alike(publicKey, readPublicKey, 'Public key got written to file')
+
+    const { request, verify } = await getSigningRequest(publicKey, t)
+
+    const tSign = t.test()
+    tSign.plan(2)
+
+    const signProcess = spawn('node', ['sign.js', request], { env })
+    signProcess.on('close', (code) => {
+      tSign.is(code, 0, '0 status code for message signing process')
     })
 
-    await tVerify
+    let response = null
+    try {
+      let data = ''
 
-    // verify against actual core
-    const { signatures } = decodeResponse(z32.decode(response))
-    t.ok(verify(signatures[0]))
+      signProcess.stdout.on('data', (bufferData) => {
+        data += bufferData.toString().toLowerCase()
+        if (DEBUG_LOG) console.log('[sign]', bufferData.toString().toLowerCase())
 
-    // sanity check
-    signatures[0].fill(0)
-    t.absent(verify(signatures[0]))
-  } finally {
-    // To ensure the process is always killed
-    verifyProcess.kill('SIGKILL')
-  }
-})
+        // User confirm
+        if (data.includes('confirm?')) {
+          data = sliceData(data, 'confirm?')
+          signProcess.stdin.write('y\n')
+        }
+
+        // Enter the password
+        if (data.includes('keypair password:')) {
+          data = sliceData(data, 'keypair password:')
+          signProcess.stdin.write(DUMMY_PASSWORD + '\n')
+        }
+
+        if (data.includes('reply with:')) {
+          response = data.split('reply with:\n\n')[1].split('\n')[0].trim()
+          tSign.pass('Successfully signed the message')
+        }
+      })
+
+      signProcess.stderr.on('data', (data) => {
+        console.error(data.toString())
+        t.fail('sign errored')
+      })
+
+      await tSign
+    } finally {
+      // To ensure the process is always killed
+      signProcess.kill('SIGKILL')
+    }
+
+    const tVerify = t.test()
+    tVerify.plan(2)
+
+    const verifyProcess = spawn('node', ['verify.js', response, request, publicKey], { env })
+    verifyProcess.on('close', (code) => {
+      tVerify.is(code, 0, '0 status code for verify process')
+    })
+
+    try {
+      let data = ''
+      verifyProcess.stdout.on('data', (bufferData) => {
+        data += bufferData.toString()
+      })
+
+      verifyProcess.stderr.on('data', (data) => {
+        console.error(data.toString())
+        t.fail('verify errored')
+      })
+
+      verifyProcess.stdout.on('close', () => {
+        if (DEBUG_LOG) console.log('[verify]', data)
+
+        if (data.includes('Signature verified.')) {
+          if (data.includes(publicKey)) {
+            tVerify.pass('Verified that the message got signed by the correct public key')
+          } else {
+            tVerify.fail('Message was signed by an incorrect public key--bug in test setup')
+          }
+        }
+      })
+
+      await tVerify
+
+      // verify against actual core
+      const { signatures } = decodeResponse(z32.decode(response))
+      t.ok(verify(signatures[0]))
+
+      // sanity check
+      signatures[0].fill(0)
+      t.absent(verify(signatures[0]))
+    } finally {
+      // To ensure the process is always killed
+      verifyProcess.kill('SIGKILL')
+    }
+  })
+}
 
 test('e2e - sign a drive', async (t) => {
   const keysDir = await t.tmp()
