@@ -4,135 +4,100 @@ const path = require('path')
 const os = require('os')
 const minimist = require('minimist')
 
+const { header, footer, command, flag, arg, summary, description, rest } = require('paparam')
+
 const { version } = require('../package.json')
 
 const { signer, verifier, generator, add } = require('../')
 const { box, underline } = require('../lib/utils')
 
-const argv = minimist(process.argv.slice(2), {
-  alias: {
-    help: 'h',
-    id: 'i',
-    'storage-dir': 'd'
-  },
-  string: ['id', 'storage-dir'],
-  boolean: ['help']
-})
+const cmd = command(
+  'sign',
+  summary('Sign a hypercore request'),
+  flag('--storage-dir|-d <path>', 'storage directory (default ~/.hypercore-sign')
+  flag('--identity|-i <name|path>', 'identity')
+  arg('<request>'),
+  validate(p => !!(p.args.publicKey || p.flags.d || p.flags.i), 'public key is not specified')
+  sign
+)
 
-const helpMsg = `${box(`hypercore-sign ${version}`)}
+const cmd = command(
+  'verify',
+  summary('Verify a response'),
+  flag('--storage-dir|-d <path>', 'storage directory (default ~/.hypercore-sign')
+  flag('--identity|-i <name|path>', 'identity')
+  arg('<response>'),
+  arg('<request>'),
+  arg('[publicKey]'),
+  validate(p => !!(p.args.publicKey || p.flags.d || p.flags.i), 'public key is not specified')
+  verify
+)
 
-Utility for signing and verifying hypercore requests
+const cmd = command(
+  'generate',
+  summary('Generate a key pair'),
+  flag('--storage-dir|-d <path>', 'storage directory (default ~/.hypercore-sign')
+  generate
+)
 
-${underline('commands')}
+const cmd = command(
+  'add',
+  summary('Add a known key'),
+  flag('--storage-dir|-d <path>', 'storage directory (default ~/.hypercore-sign')
+  arg('<publicKey>'),
+  arg('[alias]'),
+  validate(p => !!p.publicKey, 'public key is required')
+  add
+)
 
-hypercore-sign [-h|--help] [-i|--id] [-d|--storage-dir] command
-
-hypercore-sign sign             sign requests (default)
-hypercore-sign verify           verify responses
-hypercore-sign generate         generate new key pairs
-hypercore-sign add              add trusted keys
-
-${underline('usage')}
-
-sign <request>                  use default key: ~/.hypercore-sign/default
-sign <request> -i name          searches for key in ~/.hypercore-sign
-sign <request> -i /path/to/key  path to key file (relative or absolute)
-sign <request> -d ./storage     path to storage (relative or absolute)
-
-verify <res> <req> <pubkey>     verify against a pubkey
-verify <res> <req> -i key       verify against a keyfile
-verify <res> <req> -d dir       verify against all keys in dir/known-peers
-
-generate                        key pair saved at ~/.hypercore-sign/default
-generate -d ./storage           key pair saved to ./storage
-
-add <pubkey>                    key pair saved to ~/.hypercore-sign/known-peers
-add <pubkey> -d <dir>           key pair saved to dir
-add <pubkey> -d <dir> <name>    key pair saved as dir/name.public
-`
-
-if (argv.help || argv.h) {
-  printHelp()
-}
+cmd.parse()
 
 const homeDir = os.homedir()
-let dir = path.join(homeDir, '.hypercore-sign')
+const defaultDir = path.join(homeDir, '.hypercore-sign')
 
-if (argv.d) {
-  dir = path.resolve(argv.d)
+function sign(p) {
+  signer(p.args.request, parseKeyPath(p))
 }
 
-const keyPath = {
-  dir,
-  name: 'default'
+function verify(p) {
+  const keyPath = parseKeyPath(p, { publicKey: true })
+  const { response, request, publicKey } = p.args
+
+  verifier(response, request, publicKey || keyPath)
 }
 
-if (argv.i) {
-  parseKeyPath(argv.i, keyPath)
+function generate(p) {
+  const keyPath = parseKeyPath(p)
+  generator(keyPath.dir)
 }
 
-if (argv.d && keyPath.dir !== path.resolve(argv.d)) {
-  throw new Error('Specified id is not within provided storage directory')
+function add(p) {
+  const keyPath = parseKeyPath(p)
+  const { publicKey, name } = p.args
+  else add(publicKey, path.join(keyPath.dir, 'known-peers'), name)
+  break
 }
 
-let [command, ...args] = argv._
-
-switch (command) {
-  case 'add': {
-    const [publicKey, name] = args
-    if (!publicKey) printHelp()
-    else add(publicKey, path.join(keyPath.dir, 'known-peers'), name)
-    break
+function parseKeyPath(p, { dir, publicKey = true }) {
+  const keyPath = {
+    dir: defaultDir,
+    name: 'default',
+    ext: publicKey ? '.public' : ''
   }
 
-  case 'generate':
-    generator(keyPath.dir)
-    break
+  const { id, storageDir } = p.flags 
 
-  case 'verify': {
-    const [response, request, publicKey] = args
-    if (!publicKey && !argv.i && !argv.d) {
-      printHelp('No public key to verify against')
-    }
-
-    if (argv.d) {
-      keyPath.name = ''
-    } else {
-      keyPath.ext = '.public'
-    }
-
-    verifier(response, request, publicKey || keyPath)
-    break
+  if (storageDir) {
+    keyPath.dir = storageDir
   }
 
-  case 'sign':
-    if (!args.length) printHelp()
-    else signer(args[0], keyPath)
-    break
+  if (identity) {
+    const id = path.parse(identity)
 
-  default:
-    args = argv._
-    if (!args.length) printHelp()
-    else signer(args[0], keyPath)
-    break
-}
-
-function printHelp(msg) {
-  console.log(helpMsg + (msg ? '\n' : ''))
-  if (msg) console.error(msg)
-  process.exit(1)
-}
-
-function parseKeyPath(arg, keyPath) {
-  if (!arg) return keyPath
-
-  const { dir, base, ext } = path.parse(arg)
-
-  const split = base.split('.')
-  keyPath.name = split.pop() === 'public' ? split.join('.') : base
-
-  if (ext !== '.public') keyPath.name += ext // eg hypertele.readonly.public
-  if (dir !== '') keyPath.dir = dir
+    if (id.dir) keyPath.dir = id.dir
+    keyPath.name = id.name
+    keyPath.ext = id.ext
+  }
 
   return keyPath
 }

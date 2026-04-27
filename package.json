@@ -31,6 +31,7 @@
     "hypercore-sign-lib": "^1.0.0",
     "hypercore-signing-request": "^5.0.1",
     "minimist": "^1.2.8",
+    "paparam": "^1.10.1",
     "secure-prompt": "^1.2.0",
     "sodium-native": "^4.0.7",
     "z32": "^1.0.1"
