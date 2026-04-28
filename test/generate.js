@@ -173,13 +173,13 @@ test('generate - help', async (t) => {
   t.teardown(() => g.kill('SIGKILL'))
 
   g.on('close', (code) => {
-    t.is(code, 1, 'process exit code')
+    t.is(code, 0, 'process exit code')
     t.ok(message.includes('hypercore-sign'))
-    t.ok(message.includes('commands'))
-    t.ok(message.includes('usage'))
+    t.ok(message.includes('generate'))
+    t.ok(message.includes('Flags'))
   })
 
-  await t.exception(dummyUser(g), /exit code/)
+  await t.execution(dummyUser(g), /exit code/)
 
   await t.exception(() => fs.stat(path.join(keysDir, 'default')), /ENOENT/)
 })

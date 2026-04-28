@@ -162,7 +162,7 @@ test('e2e - v2 drive fixture', async (t) => {
 
   const keyFile = path.join(__dirname, 'fixtures', 'keys', 'default')
 
-  const s = spawn('node', ['./bin/cli.js', '-i', keyFile, request])
+  const s = spawn('node', ['./bin/cli.js', 'sign', '-i', keyFile, request])
   const result = await dummySigner(s, { password: 'password' })
 
   t.ok(result.response)
@@ -201,7 +201,7 @@ test('e2e - migrate legacy keys', async (t) => {
 
   t.is(legacyInfo.version, 0)
 
-  const proc = spawn('node', ['sign.js', request], { env })
+  const proc = spawn('node', ['./bin/cli.js', 'sign', request], { env })
 
   const result = await dummySigner(proc, { password: 'password', migrate: true })
 

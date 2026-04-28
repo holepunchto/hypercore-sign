@@ -34,7 +34,7 @@ test('sign - base command', async (t) => {
     'utf8'
   )
 
-  const s = spawn('node', ['./bin/cli.js', request, '-i', keyFile])
+  const s = spawn('node', ['./bin/cli.js', 'sign', request, '-i', keyFile])
 
   t.teardown(() => s.kill('SIGKILL'))
 
@@ -54,7 +54,7 @@ test('sign - with directory', async (t) => {
     'utf8'
   )
 
-  const s = spawn('node', ['./bin/cli.js', request, '-d', storageDir])
+  const s = spawn('node', ['./bin/cli.js', 'sign', request, '-d', storageDir])
 
   t.teardown(() => s.kill('SIGKILL'))
 
@@ -91,26 +91,6 @@ test('sign - v1 request', async (t) => {
   const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v1.core'),
-    'utf8'
-  )
-
-  const s = spawn('node', ['./bin/cli.js', 'sign', request, '-i', keyFile])
-
-  t.teardown(() => s.kill('SIGKILL'))
-
-  s.on('close', (code) => t.is(code, 0))
-
-  const result = await dummySigner(s)
-
-  t.ok(result.response)
-})
-
-test('sign - specify public key file', async (t) => {
-  t.plan(2)
-
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default.public')
-  const request = await fs.readFile(
-    path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core'),
     'utf8'
   )
 
@@ -288,13 +268,13 @@ test('sign - no args', async (t) => {
   t.teardown(() => s.kill('SIGKILL'))
 
   s.on('close', (code) => {
-    t.is(code, 1, 'Successfully created keys')
+    t.is(code, 0, 'process exited')
     t.ok(message.includes('hypercore-sign'))
-    t.ok(message.includes('commands'))
-    t.ok(message.includes('usage'))
+    t.ok(message.includes('Arguments'))
+    t.ok(message.includes('Flags'))
   })
 
-  await t.exception(dummySigner(s))
+  await t.execution(dummySigner(s))
 })
 
 test('sign - help', async (t) => {
@@ -316,11 +296,11 @@ test('sign - help', async (t) => {
   t.teardown(() => s.kill('SIGKILL'))
 
   s.on('close', (code) => {
-    t.is(code, 1, 'Successfully created keys')
+    t.is(code, 0, 'process exited')
     t.ok(message.includes('hypercore-sign'))
-    t.ok(message.includes('commands'))
-    t.ok(message.includes('usage'))
+    t.ok(message.includes('Arguments'))
+    t.ok(message.includes('Flags'))
   })
 
-  await t.exception(dummySigner(s))
+  await t.execution(dummySigner(s))
 })

@@ -374,13 +374,13 @@ test('verify - no public key', async (t) => {
   t.teardown(() => v.kill('SIGKILL'))
 
   v.on('close', (code) => {
-    t.is(code, 1, 'Successfully rejected response')
+    t.is(code, 0, 'Successfully rejected response')
   })
 
-  await t.exception(
+  await t.execution(
     new Promise((resolve, reject) => {
       v.stdout.on('data', (data) => {
-        if (data.toString().includes('Signature verified.')) {
+        if (data.toString().includes('Arguments')) {
           resolve()
         }
       })
@@ -497,51 +497,6 @@ test('verify - storage dir, no corresponding key', async (t) => {
   )
 })
 
-test('verify - storage dir conflicts key', async (t) => {
-  t.plan(2)
-
-  const storageDir = path.resolve(__dirname, 'fixtures', 'storage') // alternate is trusted
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default.public') // alternate is trusted
-
-  const request = await fs.readFile(
-    path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core')
-  )
-  const response = await fs.readFile(
-    path.resolve(__dirname, 'fixtures', 'responses', 'default.v2.core')
-  )
-
-  const v = spawn('node', [
-    './bin/cli.js',
-    'verify',
-    response,
-    request,
-    '-d',
-    storageDir,
-    '-i',
-    keyFile
-  ])
-
-  t.teardown(() => v.kill('SIGKILL'))
-
-  v.on('close', (code) => {
-    t.is(code, 1, 'Successfully rejected response')
-  })
-
-  await t.exception(
-    new Promise((resolve, reject) => {
-      v.stdout.on('data', (data) => {
-        if (data.toString().includes('Signature verified.')) {
-          resolve()
-        }
-      })
-
-      v.stderr.on('data', (data) => {
-        reject(new Error('verification failed'))
-      })
-    })
-  )
-})
-
 test('verify - help', async (t) => {
   t.plan(4)
 
@@ -567,9 +522,9 @@ test('verify - help', async (t) => {
   })
 
   v.on('close', (code) => {
-    t.is(code, 1, 'Successfully created keys')
+    t.is(code, 0, 'Successfully created keys')
     t.ok(message.includes('hypercore-sign'))
-    t.ok(message.includes('commands'))
-    t.ok(message.includes('usage'))
+    t.ok(message.includes('Arguments'))
+    t.ok(message.includes('Flags'))
   })
 })

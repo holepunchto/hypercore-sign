@@ -6,9 +6,10 @@ const crypto = require('hypercore-crypto')
 const z32 = require('z32')
 const sodium = require('sodium-native')
 
-const { generateKeys, sign, verify } = require('hypercore-sign-lib')
+const { generateKeys, sign, verify, getKeyInfo } = require('hypercore-sign-lib')
 
 const { readPassword, confirmPassword } = require('./lib/password')
+const { migrateV3 } = require('./migrations/v3')
 
 const {
   userPrompt,
@@ -22,6 +23,8 @@ const {
 const USER_ONLY_R = 0o400
 const USER_ONLY_RW = 0o600
 const USER_ONLY_RWX = 0o700
+
+const V3_KEY_VERSION = 0 // legacy key version
 
 module.exports = {
   generator,
@@ -76,6 +79,26 @@ async function generator(dir) {
 }
 
 async function signer(signingRequest, keyPath) {
+  const secretKeyPath = path.resolve(path.format(keyPath))
+  const publicKeyPath = path.resolve(path.format({ ...keyPath, ext: '.public' }))
+
+  const secretKey = z32.decode(await fsProm.readFile(secretKeyPath, 'utf-8'))
+  const publicKey = z32.decode(await fsProm.readFile(publicKeyPath, 'utf-8'))
+
+  const info = getKeyInfo(secretKey)
+
+  if (info.version === V3_KEY_VERSION) {
+    console.log('Found legacy key at:', secretKeyPath)
+
+    if (await userConfirm('Would you like to upgrade? [y/N]')) {
+      console.log('Migrating keys...')
+      await migrateKeys(secretKey, publicKey, secretKeyPath)
+
+      console.log('Keys migrated successfully. Please run your request again.')
+      process.exit(0)
+    }
+  }
+
   let request = null
   let req = null
 
@@ -103,21 +126,12 @@ async function signer(signingRequest, keyPath) {
   console.log('\nRequest data is confirmed')
   console.log('Proceeding to sign...')
 
-  const secretKeyPath = path.resolve(path.format(keyPath))
-  const publicKeyPath = path.resolve(path.format({ ...keyPath, ext: '.public' }))
-
-  const secretKey = z32.decode(await fsProm.readFile(secretKeyPath, 'utf-8'))
-  const publicKey = z32.decode(await fsProm.readFile(publicKeyPath, 'utf-8'))
-
   console.log(`\nSigning with ${secretKeyPath}\n`)
   if (!(await userConfirm())) {
     console.error('\nRequest aborted.')
     process.exit(1)
   }
   console.log()
-
-  // wait a tick before passing on stdin
-  await new Promise(setImmediate)
 
   const password = await readPassword()
   const response = await sign(z32.decode(signingRequest), secretKey, password, publicKey)
@@ -127,7 +141,6 @@ async function signer(signingRequest, keyPath) {
 }
 
 async function verifier(response, signingRequest, pubkey) {
-  console.log(response)
   const res = hypercoreRequest.decodeResponse(z32.decode(response))
 
   let req = null
@@ -230,6 +243,43 @@ async function add(pubkey, dir, name) {
   console.log(`Public key saved as ${keyPath}`)
   console.log()
   console.log('Public key is', z32.encode(publicKey))
+}
+
+async function migrateKeys(secretKey, publicKey, secretKeyPath) {
+  const migrated = await migrateV3(secretKey, publicKey)
+
+  const backupSecretKey = backupPath(secretKeyPath, 'v3')
+
+  let copied = false
+  try {
+    await fsProm.copyFile(secretKeyPath, backupSecretKey)
+    copied = true
+
+    console.log('Writing new keys to:', secretKeyPath)
+
+    await fsProm.chmod(secretKeyPath, USER_ONLY_RW)
+    await fsProm.writeFile(secretKeyPath, migrated, {
+      mode: USER_ONLY_R
+    })
+
+    // need to set manuall in case file existed already
+    await fsProm.chmod(secretKeyPath, USER_ONLY_R)
+  } catch (err) {
+    if (copied) {
+      try {
+        await fsProm.copyFile(backupSecretKey, secretKeyPath)
+      } catch {
+        console.log('Migration failed: please restore keys from:', backupSecretKey)
+      }
+    }
+
+    throw new Error('Migration failed')
+  }
+}
+
+function backupPath(filePath, version) {
+  if (!version) throw new Error('Must specify version')
+  return filePath + '.' + version + '.backup'
 }
 
 function getKnownPeerName(fileName) {
