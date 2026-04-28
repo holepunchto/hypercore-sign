@@ -1,12 +1,11 @@
 const { spawn } = require('child_process')
 const fs = require('fs/promises')
 const path = require('path')
-const tmp = require('test-tmp')
 const z32 = require('z32')
 const test = require('brittle')
 
 test('add - basic', async (t) => {
-  const storageDir = await tmp(t)
+  const storageDir = await t.tmp()
 
   const pubkey = await fs.readFile(
     path.join(__dirname, 'fixtures', 'keys', 'default.public'),
@@ -51,7 +50,7 @@ test('add - basic', async (t) => {
 test('add - name prompt', async (t) => {
   t.plan(4)
 
-  const storageDir = await tmp(t)
+  const storageDir = await t.tmp()
 
   const pubkey = await fs.readFile(
     path.join(__dirname, 'fixtures', 'keys', 'default.public'),
@@ -95,7 +94,7 @@ test('add - name prompt', async (t) => {
 test('add - name prompt, no value specifed', async (t) => {
   t.plan(5)
 
-  const storageDir = await tmp(t)
+  const storageDir = await t.tmp()
 
   const pubkey = await fs.readFile(
     path.join(__dirname, 'fixtures', 'keys', 'default.public'),
@@ -144,7 +143,7 @@ test('add - name prompt, no value specifed', async (t) => {
 test('add - bad key', async (t) => {
   t.plan(2)
 
-  const storageDir = await tmp(t)
+  const storageDir = await t.tmp()
 
   const pubkey = await fs.readFile(
     path.join(__dirname, 'fixtures', 'keys', 'default.public'),
@@ -169,7 +168,7 @@ test('add - bad key', async (t) => {
 test('add - invalid key', async (t) => {
   t.plan(2)
 
-  const storageDir = await tmp(t)
+  const storageDir = await t.tmp()
 
   const badKey = z32.encode(Buffer.alloc(32))
 
@@ -188,7 +187,7 @@ test('add - invalid key', async (t) => {
 })
 
 test('add - verify', async (t) => {
-  const storageDir = await tmp(t)
+  const storageDir = await t.tmp()
 
   const pubkey = await fs.readFile(
     path.join(__dirname, 'fixtures', 'keys', 'default.public'),
@@ -261,7 +260,7 @@ test('add - verify', async (t) => {
 })
 
 test('add - under different name', async (t) => {
-  const storageDir = await tmp(t)
+  const storageDir = await t.tmp()
 
   const pubkey = await fs.readFile(
     path.join(__dirname, 'fixtures', 'keys', 'default.public'),
@@ -334,7 +333,7 @@ test('add - under different name', async (t) => {
 })
 
 test('add - no key found', async (t) => {
-  const storageDir = await tmp(t)
+  const storageDir = await t.tmp()
 
   const pubkey = await fs.readFile(
     path.join(__dirname, 'fixtures', 'keys', 'alternate.public'),

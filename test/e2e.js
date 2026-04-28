@@ -175,28 +175,23 @@ test('e2e - v2 drive fixture', async (t) => {
 test('e2e - migrate legacy keys', async (t) => {
   t.plan(6)
 
-  const dir = await t.tmp()
-
   const request = await fs.readFile(
     path.join(__dirname, 'fixtures', 'requests', 'v2-drive.request'),
     'utf8'
   )
 
-  await fs.cp(
-    path.join(__dirname, 'fixtures', 'keys', 'default.v0'),
-    path.join(dir, 'keys', 'default')
-  )
-  await fs.cp(
-    path.join(__dirname, 'fixtures', 'keys', 'default.public'),
-    path.join(dir, 'keys', 'default.public')
-  )
+  const dir = await t.tmp()
+  const src = path.join(__dirname, 'fixtures', 'keys')
+
+  await fs.cp(path.join(src, 'default.v0'), path.join(dir, 'default'))
+  await fs.cp(path.join(src, 'default.public'), path.join(dir, 'default.public'))
 
   const env = {
     ...process.env,
-    HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(dir, 'keys')
+    HYPERCORE_SIGN_KEYS_DIRECTORY: dir
   }
 
-  const legacyKey = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  const legacyKey = await fs.readFile(path.join(dir, 'default'), 'utf8')
   const legacyInfo = getKeyInfo(z32.decode(legacyKey))
 
   t.is(legacyInfo.version, 0)
@@ -208,12 +203,12 @@ test('e2e - migrate legacy keys', async (t) => {
   t.ok(result.migrated, 'did migrate')
   t.absent(result.response, 'did not sign')
 
-  const key = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  const key = await fs.readFile(path.join(dir, 'default'), 'utf8')
   const info = getKeyInfo(z32.decode(key))
 
   t.is(info.version, 1)
 
-  const backupKey = await fs.readFile(path.join(dir, 'keys', 'default.v3.backup'), 'utf8')
+  const backupKey = await fs.readFile(path.join(dir, 'default.v3.backup'), 'utf8')
   t.is(backupKey, legacyKey, 'backup is same as original key')
   t.not(backupKey, key, 'backup is different from migrated key')
 })
@@ -221,28 +216,23 @@ test('e2e - migrate legacy keys', async (t) => {
 test('e2e - do not migrate legacy keys', async (t) => {
   t.plan(6)
 
-  const dir = await t.tmp()
-
   const request = await fs.readFile(
     path.join(__dirname, 'fixtures', 'requests', 'v2-drive.request'),
     'utf8'
   )
 
-  await fs.cp(
-    path.join(__dirname, 'fixtures', 'keys', 'default.v0'),
-    path.join(dir, 'keys', 'default')
-  )
-  await fs.cp(
-    path.join(__dirname, 'fixtures', 'keys', 'default.public'),
-    path.join(dir, 'keys', 'default.public')
-  )
+  const dir = await t.tmp()
+  const src = path.join(__dirname, 'fixtures', 'keys')
+
+  await fs.cp(path.join(src, 'default.v0'), path.join(dir, 'default'))
+  await fs.cp(path.join(src, 'default.public'), path.join(dir, 'default.public'))
 
   const env = {
     ...process.env,
-    HYPERCORE_SIGN_KEYS_DIRECTORY: path.join(dir, 'keys')
+    HYPERCORE_SIGN_KEYS_DIRECTORY: dir
   }
 
-  const legacyKey = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  const legacyKey = await fs.readFile(path.join(dir, 'default'), 'utf8')
   const legacyInfo = getKeyInfo(z32.decode(legacyKey))
 
   t.is(legacyInfo.version, 0)
@@ -254,11 +244,11 @@ test('e2e - do not migrate legacy keys', async (t) => {
   t.absent(result.migrated, 'did not migrate')
   t.ok(result.response, 'signed')
 
-  const key = await fs.readFile(path.join(dir, 'keys', 'default'), 'utf8')
+  const key = await fs.readFile(path.join(dir, 'default'), 'utf8')
   const info = getKeyInfo(z32.decode(key))
 
   t.is(info.version, 0)
 
-  await t.exception(fs.stat(path.join(dir, 'keys', 'default.v3.backup')), 'backup does not exist')
+  await t.exception(fs.stat(path.join(dir, 'default.v3.backup')), 'backup does not exist')
   t.alike(legacyKey, key, 'key did not change')
 })

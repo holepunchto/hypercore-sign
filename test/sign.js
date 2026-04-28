@@ -3,12 +3,16 @@ const fs = require('fs/promises')
 const path = require('path')
 const test = require('brittle')
 
-const { dummySigner } = require('./helpers')
+const { dummySigner, copyKeysDir } = require('./helpers')
 
 test('sign - basic', async (t) => {
   t.plan(2)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir)
+  const keyFile = path.resolve(dir, 'default')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v1.core'),
     'utf8'
@@ -28,7 +32,11 @@ test('sign - basic', async (t) => {
 test('sign - base command', async (t) => {
   t.plan(2)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir)
+  const keyFile = path.resolve(dir, 'default')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v1.core'),
     'utf8'
@@ -48,13 +56,16 @@ test('sign - base command', async (t) => {
 test('sign - with directory', async (t) => {
   t.plan(2)
 
-  const storageDir = path.resolve(__dirname, 'fixtures', 'storage')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'storage'), dir)
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v1.core'),
     'utf8'
   )
 
-  const s = spawn('node', ['./bin/cli.js', 'sign', request, '-d', storageDir])
+  const s = spawn('node', ['./bin/cli.js', 'sign', request, '-d', dir])
 
   t.teardown(() => s.kill('SIGKILL'))
 
@@ -68,7 +79,11 @@ test('sign - with directory', async (t) => {
 test('sign - drive request', async (t) => {
   t.plan(2)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir)
+  const keyFile = path.resolve(dir, 'default')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.drive'),
     'utf8'
@@ -88,7 +103,11 @@ test('sign - drive request', async (t) => {
 test('sign - v1 request', async (t) => {
   t.plan(2)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir)
+  const keyFile = path.resolve(dir, 'default')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v1.core'),
     'utf8'
@@ -108,7 +127,11 @@ test('sign - v1 request', async (t) => {
 test('sign - alternate signer', async (t) => {
   t.plan(2)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'alternate')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir, { name: 'alternate' })
+  const keyFile = path.resolve(dir, 'alternate')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'alternate.v2.core'),
     'utf8'
@@ -128,7 +151,11 @@ test('sign - alternate signer', async (t) => {
 test('sign - wrong signer', async (t) => {
   t.plan(2)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'alternate')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir, { name: 'alternate' })
+  const keyFile = path.resolve(dir, 'alternate')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core'),
     'utf8'
@@ -146,7 +173,11 @@ test('sign - wrong signer', async (t) => {
 test('sign - bad password', async (t) => {
   t.plan(2)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir)
+  const keyFile = path.resolve(dir, 'default')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core'),
     'utf8'
@@ -182,7 +213,11 @@ test('sign - no keyfile', async (t) => {
 test('sign - does not confirm request', async (t) => {
   t.plan(2)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir)
+  const keyFile = path.resolve(dir, 'default')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core'),
     'utf8'
@@ -200,7 +235,11 @@ test('sign - does not confirm request', async (t) => {
 test('sign - does not confirm key', async (t) => {
   t.plan(2)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir)
+  const keyFile = path.resolve(dir, 'default')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core'),
     'utf8'
@@ -218,7 +257,11 @@ test('sign - does not confirm key', async (t) => {
 test('sign - user repeats prompt', async (t) => {
   t.plan(1)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir)
+  const keyFile = path.resolve(dir, 'default')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core'),
     'utf8'
@@ -236,7 +279,11 @@ test('sign - user repeats prompt', async (t) => {
 test('sign - bad request', async (t) => {
   t.plan(2)
 
-  const keyFile = path.resolve(__dirname, 'fixtures', 'keys', 'default')
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir)
+  const keyFile = path.resolve(dir, 'default')
+
   const request = await fs.readFile(
     path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core'),
     'utf8'

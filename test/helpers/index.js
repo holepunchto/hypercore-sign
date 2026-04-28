@@ -1,3 +1,5 @@
+const fs = require('fs/promises')
+const path = require('path')
 const Hypercore = require('hypercore')
 const Hyperdrive = require('hyperdrive')
 const Corestore = require('corestore')
@@ -7,6 +9,7 @@ const z32 = require('z32')
 const b4a = require('b4a')
 
 module.exports = {
+  copyKeysDir,
   dummyUser,
   dummySigner,
   dummyVerifier,
@@ -92,6 +95,11 @@ async function getDriveSigningRequest(z32publicKey, t) {
       )
     }
   }
+}
+
+async function copyKeysDir(src, dst, { name = 'default' } = {}) {
+  await fs.cp(path.join(src, name), path.join(dst, name))
+  await fs.cp(path.join(src, name + '.public'), path.join(dst, name + '.public'))
 }
 
 async function dummyUser(
