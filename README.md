@@ -14,28 +14,18 @@ The flow is:
 npm i -g hypercore-sign
 ```
 
-## Run
+## Commands
 
-### Setup keys
+### `hypercore-sign`
 
-Run this only once, to setup a public/private key pair.
+Default mode is sign
 
-By default, keys are written to:
-
-- secret key: `~/.hypercore-sign/default`
-- public key: `~/.hypercore-sign/default.public`
+### `hypercore-sign sign`
 
 ```
-hypercore-sign-generate-keys
-
-# you will be prompted for password
-> Key-pair password:...
-```
-
-### Sign Hypercores
-
-```
-hypercore-sign <z32SigningRequest>
+hypercore-sign <request>                  use default key: ~/.hypercore-sign/default
+hypercore-sign <request> -i name          searches for key in ~/.hypercore-sign
+hypercore-sign <request> -i /path/to/key  path to key file (relative or absolute)
 ```
 
 Sign a hypercore signing request with your private key.
@@ -47,14 +37,19 @@ For example:
 ```
 hypercore-sign yr8oytuhdpmg4e511nj8thyo9mju1uaw8npox9dtzpo6ndu73w9xir69yryyyyebybywj5ifg81e8ikqbokxj1uehb1r6pkuex9s91axybjybajc47dhsgtjr9p58q8perk758qmxqn3idu5hiu5xw1iutce8xhmtmi6oxx3
 
-# you will be prompted for password
+# you will be prompted for a name and a password
+
+> Choose a name...
+
 > Key-pair password:...
 ```
 
-### Verify Signatures
+### `hypercore-sign verify`
 
 ```
-hypercore-verify <signed-message> <signing-request> <signer-public-key>
+hypercore-sign verify <res> <req> <pubkey>    verify against a pubkey
+hypercore-sign verify <res> <req> -i key      verify against a keyfile
+hypercore-sign verify <res> <req>             verify against all known keys
 ```
 
 Verify the signed message against the given signing request and public key.
@@ -62,7 +57,48 @@ Verify the signed message against the given signing request and public key.
 For example:
 
 ```
-hypercore-verify yepikuqwsnz6ygk4b6bzgr8pnpmdg8zos445881wbz5n36yge354dynafqtwj4tk8zud5k3ua6bxcfezydd18gtp6bso5ka91qe7qqhcyg5tergand7o4bfrd3shcyftdxynkqks3ibos9fmfzkff6wdp1t16eerxcstqxnkmkda13czojyh7bt7x8nzkjwpr7iws93cxhtnfzye yefyb5io7rk85wgwgw5c6k9odt8gahk1xszhz3ff8jqeyhk5pnp4qnm7yryyyyebyy3igb53agraocb7iw6ogk637bbs6osbuyj5i5zq184rciki4aubbynafqtwj4tk8zud5k3ua6bxcfezydd18gtp6bso5ka91qe7qqhcyy obcnze4r7eid53t7ic3hxyzsnwmobt3dues9y5epicx38rqz8qgy
+hypercore-sign verify yebyby5xzupiuamzhtcqrq4s3sh3msxjgdsdaf96saw7zb9amriic3asyryyyyebyyyonyebyryonyebyryonyebyryonyebyryonyebyryonyebyryonmwgo8copzwgshbtmt95cccpdj7xwdtg38e1brkd75do8rkmg1gpyy f4dedseg54dmqyaia97sgggtw6z4baucuwjy1fb67tad1ffujdgo
+```
+
+### `hypercore-sign generate`
+
+Generate new key pairs.
+
+```
+hyeprcore-sign generate                    key pair saved at ~/.hypercore-sign/default
+hyeprcore-sign generate /keys/directory    key pair saved to dir
+```
+
+By default `storage-dir` is set to `~/.hypercore-sign`.
+
+You will be prompted to name the key pair and provide a password.
+
+Keys are written with the following convention:
+
+- secret key: `~/.hypercore-sign/default`
+- public key: `~/.hypercore-sign/default.public`
+
+```
+hypercore-sign generate [key_dir]
+
+# you will be prompted to name the key and provide a password
+> key
+> Key-pair password:...
+```
+
+### `hypercore-sign add`
+
+Add known public keys.
+
+```
+add <key> <name>              key pair saved at ~/.hypercore-sign/known-peers
+add <key> <name> -d <dir>     key pair saved to dir/known-peers
+```
+
+These will be used to verify requests if no pubkey is provided:
+
+```
+hypercore-sign verify <res> <req> -d <dir>    verify against all keys in dir/known-peers
 ```
 
 ## License
