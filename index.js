@@ -15,9 +15,12 @@ const {
   userPrompt,
   userConfirm,
   box,
+  field,
   formatHypercoreRequest,
   formatHyperdriveRequest
 } = require('./lib/utils')
+
+const { bold, dim, cyan, yellow, green, red, gray } = require('./lib/color')
 
 // fs permissions
 const USER_ONLY_R = 0o400
@@ -42,19 +45,19 @@ async function generator(dir) {
   const publicKeyPath = path.resolve(path.format({ dir, name, ext: '.public' }))
 
   if (fs.existsSync(secretKeyPath)) {
-    console.log(`Secret key already written to ${secretKeyPath}`)
-    console.log(`Public key already written to ${publicKeyPath}`)
+    console.log(dim(`Secret key already written to ${secretKeyPath}`))
+    console.log(dim(`Public key already written to ${publicKeyPath}`))
     console.log()
-    console.log('Public key is', fs.readFileSync(publicKeyPath, 'utf8'))
+    console.log(gray('Public key is ') + cyan(fs.readFileSync(publicKeyPath, 'utf8')))
     return
   }
 
-  console.log('Your secret key will be encrypted with a password.')
+  console.log(yellow('Your secret key will be encrypted with a password.'))
   console.log('Please choose one now:\n')
   const password = await readPassword()
 
   if (!(await confirmPassword(password))) {
-    console.error('Passwords do not match')
+    console.error(red('Passwords do not match'))
     process.exit(1)
   }
 
@@ -72,10 +75,10 @@ async function generator(dir) {
     mode: USER_ONLY_RW
   })
 
-  console.log(`\nSecret key written to ${secretKeyPath}`)
-  console.log(`Public key written to ${publicKeyPath}`)
+  console.log(green('\nSecret key written to ') + dim(secretKeyPath))
+  console.log(green('Public key written to ') + dim(publicKeyPath))
   console.log()
-  console.log('Public key is', z32.encode(publicKey))
+  console.log(gray('Public key is ') + cyan(z32.encode(publicKey)))
 }
 
 async function signer(signingRequest, keyPath) {
@@ -88,13 +91,13 @@ async function signer(signingRequest, keyPath) {
   const info = getKeyInfo(secretKey)
 
   if (info.version === V3_KEY_VERSION) {
-    console.log('Found legacy key at:', secretKeyPath)
+    console.log(yellow('Found legacy key at: ') + dim(secretKeyPath))
 
     if (await userConfirm('Would you like to upgrade? [y/N]')) {
-      console.log('Migrating keys...')
+      console.log(dim('Migrating keys...'))
       await migrateKeys(secretKey, publicKey, secretKeyPath)
 
-      console.log('Keys migrated successfully. Please run your request again.')
+      console.log(green('Keys migrated successfully.') + dim(' Please run your request again.'))
       process.exit(0)
     }
   }
@@ -119,16 +122,16 @@ async function signer(signingRequest, keyPath) {
   console.log()
 
   if (!(await userConfirm())) {
-    console.log('\nRequest aborted.')
+    console.log(red('\nRequest aborted.'))
     process.exit(1)
   }
 
-  console.log('\nRequest data is confirmed')
-  console.log('Proceeding to sign...')
+  console.log(green('\nRequest data is confirmed'))
+  console.log(dim('Proceeding to sign...'))
 
-  console.log(`\nSigning with ${secretKeyPath}\n`)
+  console.log(dim(`\nSigning with ${secretKeyPath}\n`))
   if (!(await userConfirm())) {
-    console.error('\nRequest aborted.')
+    console.error(red('\nRequest aborted.'))
     process.exit(1)
   }
   console.log()
@@ -136,8 +139,8 @@ async function signer(signingRequest, keyPath) {
   const password = await readPassword()
   const response = await sign(z32.decode(signingRequest), secretKey, password, publicKey)
 
-  console.log(`\nSigned with public key:\n\n${z32.encode(publicKey)}`)
-  console.log(`\nReply with:\n\n${z32.encode(response)}`)
+  console.log(`\n${gray('Signed with public key:')}\n\n${cyan(z32.encode(publicKey))}`)
+  console.log(`\n${bold('Reply with:')}\n\n${green(z32.encode(response))}`)
 }
 
 async function verifier(response, signingRequest, pubkey) {
@@ -200,16 +203,16 @@ async function verifier(response, signingRequest, pubkey) {
   // throws
   verify(z32.decode(response), z32.decode(signingRequest), z32.decode(pubkey))
 
-  console.log('\nSignature verified.')
-  if (known) console.log(`\nSigned by known peer: "${known}"`)
-  else console.log(`\n${pubkey} signed the following request:`)
+  console.log(green('\nSignature verified.'))
+  if (known) console.log(`\n${gray('Signed by known peer:')} ${cyan(`"${known}"`)}`)
+  else console.log(`\n${cyan(pubkey)} ${dim('signed the following request:')}`)
 
-  console.log({
-    core: req.id,
-    fork: req.fork,
-    length: req.length,
-    treeHash: req.treeHash.toString('hex')
-  })
+  console.log('\n' + [
+    field('core', req.id),
+    field('fork', req.fork),
+    field('length', req.length),
+    field('treeHash', req.treeHash.toString('hex'))
+  ].join('\n'))
 }
 
 async function add(pubkey, dir, name) {
@@ -232,17 +235,17 @@ async function add(pubkey, dir, name) {
   const keyPath = path.resolve(path.format({ dir, name, ext: '.public' }))
 
   if (fs.existsSync(keyPath)) {
-    console.log(`Public key already added as ${keyPath}`)
+    console.log(yellow(`Public key already added as ${keyPath}`))
     console.log()
-    console.log('Public key is', fs.readFileSync(keyPath, 'utf8'))
+    console.log(gray('Public key is ') + cyan(fs.readFileSync(keyPath, 'utf8')))
     return
   }
 
   await fsProm.writeFile(keyPath, pubkey, { mode: USER_ONLY_RW })
 
-  console.log(`Public key saved as ${keyPath}`)
+  console.log(green('Public key saved as ') + dim(keyPath))
   console.log()
-  console.log('Public key is', z32.encode(publicKey))
+  console.log(gray('Public key is ') + cyan(z32.encode(publicKey)))
 }
 
 async function migrateKeys(secretKey, publicKey, secretKeyPath) {
@@ -255,7 +258,7 @@ async function migrateKeys(secretKey, publicKey, secretKeyPath) {
     await fsProm.copyFile(secretKeyPath, backupSecretKey)
     copied = true
 
-    console.log('Writing new keys to:', secretKeyPath)
+    console.log(dim('Writing new keys to: ' + secretKeyPath))
 
     await fsProm.chmod(secretKeyPath, USER_ONLY_RW)
     await fsProm.writeFile(secretKeyPath, migrated, {
@@ -269,7 +272,7 @@ async function migrateKeys(secretKey, publicKey, secretKeyPath) {
       try {
         await fsProm.copyFile(backupSecretKey, secretKeyPath)
       } catch {
-        console.log('Migration failed: please restore keys from:', backupSecretKey)
+        console.log(red('Migration failed: please restore keys from: ' + backupSecretKey))
       }
     }
 
