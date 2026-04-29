@@ -3,11 +3,11 @@
 const path = require('path')
 const os = require('os')
 
-const { header, description, command, flag, arg, bail, summary, validate } = require('paparam')
+const { header, command, flag, arg, bail, summary, validate } = require('paparam')
 
 const { version } = require('../package.json')
 
-const { bold, dim, yellow, cyan, gray } = require('../lib/color')
+const { bold, dim, gray } = require('../lib/formatting')
 
 const {
   signer: signHandler,
@@ -132,10 +132,6 @@ function validateCmd(p) {
 }
 
 // helpers
-
-function mainHelp() {
-  console.log(helpMsg)
-}
 
 function parseKeyPath(p, { name, dir, publicKey = false } = {}) {
   const keyPath = {

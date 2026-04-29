@@ -14,13 +14,11 @@ const { migrateV3 } = require('./migrations/v3')
 const {
   userPrompt,
   userConfirm,
-  box,
-  field,
   formatHypercoreRequest,
   formatHyperdriveRequest
 } = require('./lib/utils')
 
-const { bold, dim, cyan, yellow, green, red, gray } = require('./lib/color')
+const { bold, dim, cyan, yellow, green, red, gray, box, field } = require('./lib/formatting')
 
 // fs permissions
 const USER_ONLY_R = 0o400
@@ -207,12 +205,15 @@ async function verifier(response, signingRequest, pubkey) {
   if (known) console.log(`\n${gray('Signed by known peer:')} ${cyan(`"${known}"`)}`)
   else console.log(`\n${cyan(pubkey)} ${dim('signed the following request:')}`)
 
-  console.log('\n' + [
-    field('core', req.id),
-    field('fork', req.fork),
-    field('length', req.length),
-    field('treeHash', req.treeHash.toString('hex'))
-  ].join('\n'))
+  console.log(
+    '\n' +
+      [
+        field('core', req.id),
+        field('fork', req.fork),
+        field('length', req.length),
+        field('treeHash', req.treeHash.toString('hex'))
+      ].join('\n')
+  )
 }
 
 async function add(pubkey, dir, name) {
