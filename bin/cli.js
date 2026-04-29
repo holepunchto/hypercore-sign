@@ -7,6 +7,8 @@ const { header, command, flag, arg, bail, summary, validate } = require('paparam
 
 const { version } = require('../package.json')
 
+const { bold, dim, gray } = require('../lib/formatting')
+
 const {
   signer: signHandler,
   verifier: verifyHandler,
@@ -17,19 +19,6 @@ const {
 const homeDir = os.homedir()
 const defaultDir =
   process.env.HYPERCORE_SIGN_KEYS_DIRECTORY || path.join(homeDir, '.hypercore-sign')
-
-const helpMsg = `hypercore-sign v${version}
-
-  hypercore-sign [-h|--help] command
-
-  Utility for signing and verifying hypercore requests
-
-  Commands:
-    sign                        sign requests
-    verify                      verify responses
-    generate                    generate new key pairs
-    add                         add trusted keys
-`
 
 // commands
 
@@ -81,14 +70,24 @@ const addCmd = command(
   add
 )
 
-const cmd = command('hypercore-sign', signCmd, verifyCmd, generateCmd, addCmd, bail(mainHelp))
+const cmd = command(
+  'hypercore-sign',
+  header(bold(`hypercore-sign 🔑 ${gray(`v${version}`)}`)),
+  summary(dim('Manage hypercore signing keys')),
+  signCmd,
+  verifyCmd,
+  generateCmd,
+  addCmd,
+  validateCmd,
+  bail(() => console.log(cmd.help()))
+)
 
 cmd.parse()
 
 // routers
 
 function sign(p) {
-  console.log('signing', p.args.request)
+  console.log(dim('signing') + ' ' + gray(p.args.request))
   signHandler(p.args.request, parseKeyPath(p, { name: 'default' }))
 }
 
@@ -128,11 +127,11 @@ function validateAdd(p) {
   return !!p.args.publicKey
 }
 
-// helpers
-
-function mainHelp() {
-  console.log(helpMsg)
+function validateCmd(p) {
+  return !!Object.entries(p.args.length).length
 }
+
+// helpers
 
 function parseKeyPath(p, { name, dir, publicKey = false } = {}) {
   const keyPath = {
