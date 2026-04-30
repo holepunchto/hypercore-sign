@@ -204,10 +204,12 @@ async function reader(proc, ondata) {
     })
 
     proc.stderr.on('data', (data) => {
+      console.log(data.toString())
       reject(new Error('process errored'))
     })
 
     proc.stdout.on('data', (data) => {
+      console.log(data.toString())
       output += data.toString().toLowerCase()
       ondata(output, mark)
       flush()
