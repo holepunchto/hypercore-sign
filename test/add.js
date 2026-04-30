@@ -26,10 +26,12 @@ test('add - basic', async (t) => {
   let message = ''
 
   a.stdout.on('data', (data) => {
+    console.log(data.toString())
     message += data.toString()
   })
 
   a.stderr.on('data', (data) => {
+    console.log(data.toString())
     t1.fail('Adding key errored')
   })
 
