@@ -16,16 +16,12 @@ npm i -g hypercore-sign
 
 ## Commands
 
-### `hypercore-sign`
-
-Default mode is sign
-
 ### `hypercore-sign sign`
 
 ```
-hypercore-sign <request>                  use default key: ~/.hypercore-sign/default
-hypercore-sign <request> -i name          searches for key in ~/.hypercore-sign
-hypercore-sign <request> -i /path/to/key  path to key file (relative or absolute)
+hypercore-sign sign <request>                  use default key: ~/.hypercore-sign/default
+hypercore-sign sign <request> -i name          searches for key in ~/.hypercore-sign
+hypercore-sign sign <request> -i /path/to/key  path to key file (relative or absolute)
 ```
 
 Sign a hypercore signing request with your private key.
@@ -35,7 +31,7 @@ Expects the signing request to be [z32](https://github.com/mafintosh/z32)-encode
 For example:
 
 ```
-hypercore-sign yr8oytuhdpmg4e511nj8thyo9mju1uaw8npox9dtzpo6ndu73w9xir69yryyyyebybywj5ifg81e8ikqbokxj1uehb1r6pkuex9s91axybjybajc47dhsgtjr9p58q8perk758qmxqn3idu5hiu5xw1iutce8xhmtmi6oxx3
+hypercore-sign sign yr8oytuhdpmg4e511nj8thyo9mju1uaw8npox9dtzpo6ndu73w9xir69yryyyyebybywj5ifg81e8ikqbokxj1uehb1r6pkuex9s91axybjybajc47dhsgtjr9p58q8perk758qmxqn3idu5hiu5xw1iutce8xhmtmi6oxx3
 
 # you will be prompted for a name and a password
 
