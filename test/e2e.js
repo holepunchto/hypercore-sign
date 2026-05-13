@@ -237,7 +237,7 @@ test('e2e - do not migrate legacy keys', async (t) => {
 
   t.is(legacyInfo.version, 0)
 
-  const proc = spawn('node', ['sign.js', request], { env })
+  const proc = spawn('node', ['./bin/cli.js', 'sign', request], { env })
 
   const result = await dummySigner(proc, { password: 'password', migrate: false })
 
