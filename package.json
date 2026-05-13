@@ -5,6 +5,7 @@
   "main": "index.js",
   "files": [
     "lib/",
+    "migrations/",
     "index.js"
   ],
   "bin": {
