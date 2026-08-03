@@ -1,5 +1,7 @@
 # Hypercore Sign
 
+WARNING: this readme is for V4 of hypercore-sign, but V3 is still the latest stable version. See https://www.npmjs.com/package/hypercore-sign for the instructions for the latest stable version.
+
 Sign [hypercore signing requests](https://github.com/holepunchto/hypercore-signing-request/) using public/private key cryptography, and verify the signatures.
 
 The flow is:
