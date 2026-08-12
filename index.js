@@ -1,6 +1,7 @@
 const path = require('path')
 const fs = require('fs')
 const fsProm = require('fs/promises')
+const b4a = require('b4a')
 const hypercoreRequest = require('hypercore-signing-request')
 const crypto = require('hypercore-crypto')
 const z32 = require('z32')
@@ -100,12 +101,10 @@ async function signer(signingRequest, keyPath) {
     }
   }
 
-  let request = null
   let req = null
 
   try {
-    request = z32.decode(signingRequest)
-    req = hypercoreRequest.decode(request)
+    req = hypercoreRequest.decode(z32.decode(signingRequest))
   } catch (e) {
     throw new Error('\nCould not decode the signing request. Invalid signing request?')
   }
@@ -141,7 +140,7 @@ async function signer(signingRequest, keyPath) {
   console.log(`\n${bold('Reply with:')}\n\n${green(z32.encode(response))}`)
 }
 
-async function verifier(response, signingRequest, pubkey) {
+async function verifier(response, signingRequest, pubkey, { keyPath }) {
   const res = hypercoreRequest.decodeResponse(z32.decode(response))
 
   let req = null
@@ -155,55 +154,22 @@ async function verifier(response, signingRequest, pubkey) {
     throw new Error('Signature was not made over this request')
   }
 
-  let known = null
-  if (typeof pubkey !== 'string') {
-    const keyPath =
-      pubkey.name === ''
-        ? path.resolve(path.format(pubkey), 'known-peers')
-        : path.resolve(path.format(pubkey))
+  const publicKey = pubkey ? z32.decode(pubkey) : null
 
-    let stat
-    try {
-      stat = await fsProm.stat(keyPath)
-    } catch (err) {
-      if (err.code !== 'ENOENT') throw err
-      throw new Error('No keys found at path: ' + keyPath)
-    }
-
-    if (stat.isFile()) {
-      known = getKnownPeerName(keyPath)
-      pubkey = await fsProm.readFile(keyPath, 'utf8')
-    } else if (stat.isDirectory()) {
-      known = false
-
-      const dir = await fsProm.readdir(keyPath)
-      const check = z32.encode(res.publicKey)
-
-      for (const file of dir) {
-        const keyFile = path.join(keyPath, file)
-        const peer = await fsProm.readFile(keyFile, 'utf8')
-        if (peer === check) {
-          known = getKnownPeerName(keyFile)
-          pubkey = peer
-          break
-        }
-        pubkey = null
-      }
-    }
+  if (publicKey && !b4a.equals(publicKey, res.publicKey)) {
+    throw new Error('Signer does not match expected publicKey')
   }
-
-  if (!pubkey) {
-    throw new Error('No corresponding public key could be found')
-  }
-
-  const publicKey = z32.decode(pubkey)
 
   // throws
-  verify(z32.decode(response), z32.decode(signingRequest), z32.decode(pubkey))
+  verify(z32.decode(response), z32.decode(signingRequest), res.publicKey)
 
   console.log(green('\nSignature verified.'))
-  if (known) console.log(`\n${gray('Signed by known peer:')} ${cyan(`"${known}"`)}`)
-  else console.log(`\n${cyan(pubkey)} ${dim('signed the following request:')}`)
+  if (keyPath) {
+    const known = await findKnownPeer(keyPath, publicKey)
+    console.log(`\n${gray('Signed by known peer:')} ${cyan(`"${known}"`)}`)
+  } else {
+    console.log(`\n${cyan(publicKey)} ${dim('signed the following request:')}`)
+  }
 
   console.log(
     '\n' +
@@ -278,6 +244,38 @@ async function migrateKeys(secretKey, publicKey, secretKeyPath) {
     }
 
     throw new Error('Migration failed')
+  }
+}
+
+async function findKnownPeer(keyPath, expectedPublicKey) {
+  const identityPath =
+    keyPath.name === ''
+      ? path.resolve(path.format(keyPath), 'known-peers')
+      : path.resolve(path.format(keyPath))
+
+  let stat
+  try {
+    stat = await fsProm.stat(identityPath)
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+    throw new Error('No identity found')
+  }
+
+  if (stat.isFile()) {
+    const publicKey = await fsProm.readFile(identityPath, 'utf8')
+    if (!b4a.equals(publicKey, expectedPublicKey)) {
+      throw new Error('Signer does not match provided identity')
+    }
+    return getKnownPeerName(identityPath)
+  } else if (stat.isDirectory()) {
+    const dir = await fsProm.readdir(identityPath)
+    const check = z32.encode(expectedPublicKey)
+
+    for (const file of dir) {
+      const keyFile = path.join(identityPath, file)
+      const peer = await fsProm.readFile(keyFile, 'utf8')
+      if (peer === check) return getKnownPeerName(keyFile)
+    }
   }
 }
 

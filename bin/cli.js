@@ -52,7 +52,7 @@ const generateCmd = command(
   'generate',
   header(`hypercore-sign v${version}`),
   summary('Generate a key pair'),
-  flag('--storage-dir|-d <path>', 'storage directory (default ~/.hypercore-sign)'),
+  flag('--storage-dir|-d [path]', 'storage directory (default ~/.hypercore-sign)'),
   validate(validateGenerate),
   bail(() => console.log(generateCmd.help())),
   generate
@@ -62,7 +62,7 @@ const addCmd = command(
   'add',
   header(`hypercore-sign v${version}`),
   summary('Add a known key'),
-  flag('--storage-dir|-d <path>', 'storage directory (default ~/.hypercore-sign)'),
+  flag('--storage-dir|-d [path]', 'storage directory (default ~/.hypercore-sign)'),
   arg('<publicKey>'),
   arg('[alias]'),
   validate(validateAdd),
@@ -95,7 +95,7 @@ function verify(p) {
   const keyPath = parseKeyPath(p, { dir: 'known-peers', publicKey: true })
   const { response, request, publicKey } = p.args
 
-  verifyHandler(response, request, publicKey || keyPath)
+  verifyHandler(response, request, publicKey, { keyPath })
 }
 
 function generate(p) {
@@ -116,7 +116,7 @@ function validateSign(p) {
 }
 
 function validateVerify(p) {
-  return !!(p.args.response && p.args.request && (p.args.publicKey || p.flags.d || p.flags.i))
+  return !!(p.args.response && p.args.request)
 }
 
 function validateGenerate(p) {
