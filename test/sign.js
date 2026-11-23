@@ -377,7 +377,7 @@ test('sign - confirmation displays quorum and namespace', async (t) => {
       if (out.includes('confirm?')) resolve(out)
     })
 
-    s.stderr.on('data', () => reject(new Error('process errored')))
+    s.stderr.on('data', (data) => reject(new Error('process errored: ' + data.toString())))
   })
 
   t.ok(output.includes('quorum'), 'confirmation displays quorum')
