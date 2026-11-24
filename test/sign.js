@@ -293,10 +293,12 @@ test('sign - bad request', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
+  let stderr = ''
   s.stderr.on('data', (data) => {
-    t.pass('errored')
+    stderr += data.toString()
   })
   s.on('close', (code) => {
+    t.ok(stderr.includes('Could not decode the signing request'), 'errored')
     t.is(code, 1, 'Signing correctly exited')
   })
 })
