@@ -204,7 +204,7 @@ async function reader(proc, ondata) {
     })
 
     proc.stderr.on('data', (data) => {
-      reject(new Error('process errored'))
+      reject(new Error('process errored: ' + data.toString()))
     })
 
     proc.stdout.on('data', (data) => {

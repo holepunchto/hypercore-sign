@@ -175,6 +175,7 @@ async function verifier(response, signingRequest, pubkey) {
       pubkey = await fsProm.readFile(keyPath, 'utf8')
     } else if (stat.isDirectory()) {
       known = false
+      pubkey = null
 
       const dir = await fsProm.readdir(keyPath)
       const check = z32.encode(res.publicKey)

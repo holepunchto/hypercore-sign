@@ -293,10 +293,12 @@ test('sign - bad request', async (t) => {
 
   t.teardown(() => s.kill('SIGKILL'))
 
+  let stderr = ''
   s.stderr.on('data', (data) => {
-    t.pass('errored')
+    stderr += data.toString()
   })
   s.on('close', (code) => {
+    t.ok(stderr.includes('Could not decode the signing request'), 'errored')
     t.is(code, 1, 'Signing correctly exited')
   })
 })
@@ -350,4 +352,37 @@ test('sign - help', async (t) => {
   })
 
   await t.execution(dummySigner(s))
+})
+
+test('sign - confirmation displays quorum and namespace', async (t) => {
+  t.plan(3)
+
+  const dir = await t.tmp()
+
+  await copyKeysDir(path.join(__dirname, 'fixtures', 'keys'), dir)
+  const keyFile = path.resolve(dir, 'default')
+
+  const request = await fs.readFile(
+    path.resolve(__dirname, 'fixtures', 'requests', 'default.v1.core'),
+    'utf8'
+  )
+
+  const s = spawn('node', ['./bin/cli.js', 'sign', request, '-i', keyFile])
+
+  t.teardown(() => s.kill('SIGKILL'))
+
+  const output = await new Promise((resolve, reject) => {
+    let out = ''
+
+    s.stdout.on('data', (data) => {
+      out += data.toString().toLowerCase()
+      if (out.includes('confirm?')) resolve(out)
+    })
+
+    s.stderr.on('data', (data) => reject(new Error('process errored: ' + data.toString())))
+  })
+
+  t.ok(output.includes('quorum'), 'confirmation displays quorum')
+  t.ok(output.includes('1 / 1'), 'quorum shows threshold out of signer count')
+  t.ok(output.includes('namespace'), 'confirmation displays namespace')
 })

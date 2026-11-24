@@ -528,3 +528,40 @@ test('verify - help', async (t) => {
     t.ok(message.includes('Flags'))
   })
 })
+
+test('verify - empty known peers dir', async (t) => {
+  t.plan(2)
+
+  const storageDir = await t.tmp()
+  await fs.mkdir(path.join(storageDir, 'known-peers'))
+
+  const request = await fs.readFile(
+    path.resolve(__dirname, 'fixtures', 'requests', 'default.v2.core')
+  )
+  const response = await fs.readFile(
+    path.resolve(__dirname, 'fixtures', 'responses', 'default.v2.core')
+  )
+
+  const v = spawn('node', ['./bin/cli.js', 'verify', response, request, '-d', storageDir])
+
+  t.teardown(() => v.kill('SIGKILL'))
+
+  v.on('close', (code) => {
+    t.is(code, 1, 'Successfully rejected response')
+  })
+
+  const err = await new Promise((resolve) => {
+    let out = ''
+
+    v.stderr.on('data', (data) => {
+      out += data.toString()
+    })
+
+    v.on('close', () => resolve(out))
+  })
+
+  t.ok(
+    err.includes('No corresponding public key could be found'),
+    'friendly error for empty known-peers dir'
+  )
+})
